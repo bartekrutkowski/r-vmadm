@@ -1,0 +1,71 @@
+name: vmadm
+author: Heinz N. Gies <heinz@project-fifo.net>
+about: vmadm compatible jail manage
+args:
+    - verbose:
+        short: v
+        multiple: true
+        help: Sets the level of verbosity
+        global: true
+
+    - startup:
+        long: startup
+        conflicts_with:
+            list
+subcommands:
+    - list:
+        about: lists jails
+        args:
+            - parsable:
+                short: p
+                help: prints the list in a parsable fomat
+            - headerless:
+                short: H
+                help: prints the list without a header
+    - create:
+        about: creates a new jail
+        args:
+            - file:
+                short: f
+                takes_value: true
+                required: false
+    - update:
+        about: updates a jail
+        args:
+            - uuid:
+                help: UUID if the jail to start
+                index: 1
+                required: true
+            - file:
+                short: f
+                takes_value: true
+                required: false
+    - destroy:
+        about: destroys a jail
+        args:
+            - uuid:
+                help: UUID if the jail to destroy
+                index: 1
+                required: true
+            - force:
+                help: forces the stop
+                short: f
+                takes_value: false
+    - start:
+        about: starts a jail
+        args:
+            - uuid:
+                help: UUID if the jail to start
+                index: 1
+                required: true
+    - stop:
+        about: stops a jail
+        args:
+            - uuid:
+                help: UUID if the jail to stop
+                index: 1
+                required: true
+            - force:
+                help: forces the stop
+                short: f
+                takes_value: false

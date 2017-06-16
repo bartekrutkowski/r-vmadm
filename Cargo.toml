@@ -1,0 +1,8 @@
+[package]
+name = "vmadm"
+version = "0.1.0"
+authors = ["Heinz N. Gies <heinz@project-fifo.net>"]
+
+[dependencies.clap]
+version = "2.24.2"
+features = ["yaml"]
