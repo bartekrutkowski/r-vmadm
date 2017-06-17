@@ -1,13 +1,11 @@
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
-use std::path::PathBuf;
 use std::str;
 use uuid::Uuid;
 
 
 use serde_json;
-use serde_derive;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -19,7 +17,7 @@ pub struct Config {
     disk: u64,
 }
 #[derive(Debug, Serialize, Deserialize)]
-struct IdxEntry {
+pub struct IdxEntry {
     version: u32,
     uuid: String,
     root: String,
@@ -55,7 +53,7 @@ impl<'a> JDB<'a> {
                 })
             }
             Err(_) => {
-                let mut entries: Vec<IdxEntry> = Vec::new();
+                let entries: Vec<IdxEntry> = Vec::new();
                 let index: Index = Index {
                     version: 0,
                     entries: entries,
@@ -64,7 +62,7 @@ impl<'a> JDB<'a> {
                     index: index,
                     dir: path.parent().unwrap(),
                 };
-                db.save();
+                db.save()?;
                 Ok(db)
 
             }
@@ -77,7 +75,7 @@ impl<'a> JDB<'a> {
         let file = File::create(&path)?;
         let mut root = String::from("/jails/");
         root.push_str(&config.uuid.clone());
-        let mut e = IdxEntry{
+        let e = IdxEntry{
             version: 0,
             uuid: config.uuid.clone(),
             state: String::from("installing"),
@@ -85,7 +83,7 @@ impl<'a> JDB<'a> {
             root: root,
         };
         self.index.entries.push(e);
-        self.save();
+        self.save()?;
         serde_json::to_writer(file, &config)?;
         Ok(config)
     }
@@ -94,14 +92,14 @@ impl<'a> JDB<'a> {
         let mut config_path = self.dir.join(entry.uuid.clone());
         config_path.set_extension("json");
         let config_file = File::open(config_path)?;
-        let mut conf: Config = serde_json::from_reader(config_file)?;
+        let conf: Config = serde_json::from_reader(config_file)?;
         Ok(conf)
     }
 
     fn save(self: &'a JDB<'a>) -> Result<usize, Box<Error>> {
-        let mut path = self.dir.join("index");
-        let mut file = File::create(path)?;
-        serde_json::to_writer(file, &self.index);
+        let path = self.dir.join("index");
+        let file = File::create(path)?;
+        serde_json::to_writer(file, &self.index)?;
         Ok(self.index.entries.len())
     }
     pub fn find(self: &'a JDB<'a>, uuid: String) -> Option<&'a IdxEntry> {

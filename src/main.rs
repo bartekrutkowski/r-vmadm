@@ -8,13 +8,13 @@ extern crate serde_json;
 extern crate uuid;
 
 use std::path::Path;
-use std::io::{self, Read};
+use std::io;
 
 use std::error::Error;
 use std::fmt;
 
 mod jdb;
-use jdb::{JDB, Config};
+use jdb::{JDB};
 
 static INDEX: &'static str = "/etc/jails/index";
 
@@ -43,36 +43,53 @@ fn main() {
     let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
     if matches.is_present("startup") {
         match matches.subcommand() {
-            ("", None) => println!("startup"),
-            _ => println!("Can not use startup with a subcommand"),
+            ("", None) => {
+                println!("startup");
+                0
+            }
+            _ => {
+                println!("Can not use startup with a subcommand");
+                1
+            }
         }
     } else {
-        match matches.subcommand() {
-            ("list", Some(list_matches)) => {
-                match JDB::open(Path::new(INDEX)) {
-                    Err(e) => println!("cound not open index: {}", e),
-                    Ok(db) => db.print(),
-                }
+        let r = match matches.subcommand() {
+            ("list", Some(list_matches)) => list(list_matches),
+            ("create", Some(create_matches)) => create(create_matches),
+            ("update", Some(update_matches)) => dummy(update_matches),
+            ("destroy", Some(destroy_matches)) => dummy(destroy_matches),
+            ("start", Some(start_matches)) => dummy(start_matches),
+            ("stop", Some(stop_matches)) => dummy(stop_matches),
+            ("", None) => {
+                help_app.print_help().unwrap();
+                Ok(0)
             }
-            ("create", Some(create_matches)) => {
-                let conf = create();
-                println!("create jail: {:?}", conf);
-            }
-            ("update", Some(update_matches)) => println!("update jail"),
-            ("destroy", Some(destroy_matches)) => println!("destroy jail"),
-            ("start", Some(destroy_matches)) => println!("start jail"),
-            ("stop", Some(destroy_matches)) => println!("stop jail"),
-            ("", None) => help_app.print_help().unwrap(),
             _ => unreachable!(),
         };
+        match r {
+            Ok(v) => v,
+            Err(_) => 1,
+        }
     };
 }
 
-fn create() -> Result<jdb::Config, Box<Error>> {
+fn dummy(_matches: &clap::ArgMatches) -> Result<u8, Box<Error>> {
+    Ok(0)
+}
+
+fn list(_matches: &clap::ArgMatches) -> Result<u8, Box<Error>> {
+    let db = JDB::open(Path::new(INDEX))?;
+    db.print();
+    Ok(0)
+}
+fn create(_matches: &clap::ArgMatches) -> Result<u8, Box<Error>> {
     let mut db = JDB::open(Path::new(INDEX))?;
     let conf: jdb::Config = serde_json::from_reader(io::stdin())?;
     match db.find(conf.uuid.clone()) {
-        None => db.insert(conf),
+        None => {
+            db.insert(conf)?;
+            Ok(0)
+        }
         Some(_) => Err(Box::new(ConflictError { uuid: conf.uuid })),
     }
 }
