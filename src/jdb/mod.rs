@@ -19,6 +19,7 @@ pub struct Config {
     cpu: u64,
     disk: u64,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 struct IdxEntry {
     version: u32,
@@ -92,6 +93,7 @@ impl<'a> JDB<'a> {
 
         }
     }
+
     /// Inserts a config into the database, writes the config file
     /// and adds it to the index.
     pub fn insert(self: &'a mut JDB<'a>, config: Config) -> Result<Config, Box<Error>> {
@@ -114,14 +116,15 @@ impl<'a> JDB<'a> {
                 serde_json::to_writer(file, &config)?;
                 Ok(config)
             }
-            Some(_) => Err(Box::new(ConflictError::new(config.uuid))),
+            Some(_) => Err(ConflictError::bx(config.uuid)),
         }
     }
+
     /// Removes a jail with a given uuid from the index and removes it's
     /// config file.
     pub fn remove(self: &'a mut JDB<'a>, uuid: String) -> Result<usize, Box<Error>> {
         match self.find(& uuid) {
-            None => Err(Box::new(NotFoundError::new(uuid.clone()))),
+            None => Err(NotFoundError::bx(uuid.clone())),
             Some(index) => {
                 // remove the config file first
                 let mut path = self.dir.join(uuid.clone());
@@ -133,6 +136,7 @@ impl<'a> JDB<'a> {
             }
         }
     }
+
     /// Prints the jdb database
     pub fn print(self: &'a JDB<'a>) {
         println!(

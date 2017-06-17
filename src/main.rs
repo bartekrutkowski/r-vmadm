@@ -17,7 +17,7 @@ pub mod jdb;
 use jdb::JDB;
 
 pub mod errors;
-
+use errors::GenericError;
 static INDEX: &'static str = "/etc/jails/index";
 
 
@@ -27,19 +27,13 @@ fn main() {
     let yaml = load_yaml!("cli.yml");
     let mut help_app = App::from_yaml(yaml).version(crate_version!());
     let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
-    if matches.is_present("startup") {
+    let r = if matches.is_present("startup") {
         match matches.subcommand() {
-            ("", None) => {
-                println!("startup");
-                0
-            }
-            _ => {
-                println!("Can not use startup with a subcommand");
-                1
-            }
+            ("", None) => startup(),
+            _ => Err(GenericError::bx("Can not use startup with a subcommand"))
         }
     } else {
-        let r = match matches.subcommand() {
+        match matches.subcommand() {
             ("list", Some(list_matches)) => list(list_matches),
             ("create", Some(create_matches)) => create(create_matches),
             ("update", Some(update_matches)) => update(update_matches),
@@ -51,15 +45,19 @@ fn main() {
                 Ok(0)
             }
             _ => unreachable!(),
-        };
-        match r {
-            Ok(exit_code) => std::process::exit(exit_code),
-            Err(e) => {
-                println!("error: {}", e);
-                std::process::exit(1)
-            }
         }
     };
+    match r {
+        Ok(exit_code) => std::process::exit(exit_code),
+        Err(e) => {
+            println!("error: {}", e);
+            std::process::exit(1)
+        }
+    }
+}
+
+fn startup() -> Result<i32, Box<Error>> {
+    Ok(0)
 }
 
 fn start(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
