@@ -42,10 +42,10 @@ fn main() {
         let r = match matches.subcommand() {
             ("list", Some(list_matches)) => list(list_matches),
             ("create", Some(create_matches)) => create(create_matches),
-            ("update", Some(update_matches)) => dummy(update_matches),
+            ("update", Some(update_matches)) => update(update_matches),
             ("destroy", Some(destroy_matches)) => destroy(destroy_matches),
-            ("start", Some(start_matches)) => dummy(start_matches),
-            ("stop", Some(stop_matches)) => dummy(stop_matches),
+            ("start", Some(start_matches)) => start(start_matches),
+            ("stop", Some(stop_matches)) => stop(stop_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
                 Ok(0)
@@ -62,7 +62,15 @@ fn main() {
     };
 }
 
-fn dummy(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn start(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    Ok(0)
+}
+
+fn stop(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    Ok(0)
+}
+
+fn update(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
