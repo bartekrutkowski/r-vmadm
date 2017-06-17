@@ -1,10 +1,14 @@
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::path::Path;
 use std::str;
+use std::cmp::PartialEq;
 use uuid::Uuid;
 
 use serde_json;
+
+use errors::{NotFoundError, ConflictError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -22,6 +26,12 @@ pub struct IdxEntry {
     root: String,
     state: String,
     jail_type: String,
+}
+
+impl PartialEq for IdxEntry {
+    fn eq(&self, other: &IdxEntry) -> bool {
+        self.uuid == other.uuid
+    }
 }
 
 fn new_uuid() -> String {
@@ -69,22 +79,54 @@ impl<'a> JDB<'a> {
         }
     }
     pub fn insert(self: &'a mut JDB<'a>, config: Config) -> Result<Config, Box<Error>> {
-        let mut path = self.dir.join(config.uuid.clone());
-        path.set_extension("json");
-        let file = File::create(&path)?;
-        let mut root = String::from("/jails/");
-        root.push_str(&config.uuid.clone());
-        let e = IdxEntry{
-            version: 0,
-            uuid: config.uuid.clone(),
-            state: String::from("installing"),
-            jail_type: String::from("base"),
-            root: root,
-        };
-        self.index.entries.push(e);
-        self.save()?;
-        serde_json::to_writer(file, &config)?;
-        Ok(config)
+        match self.find(&config.uuid) {
+            None => {
+                let mut path = self.dir.join(config.uuid.clone());
+                path.set_extension("json");
+                let file = File::create(&path)?;
+                let mut root = String::from("/jails/");
+                root.push_str(&config.uuid.clone());
+                let e = IdxEntry {
+                    version: 0,
+                    uuid: config.uuid.clone(),
+                    state: String::from("installing"),
+                    jail_type: String::from("base"),
+                    root: root,
+                };
+                self.index.entries.push(e);
+                self.save()?;
+                serde_json::to_writer(file, &config)?;
+                Ok(config)
+            }
+            Some(_) => Err(Box::new(ConflictError::new(config.uuid))),
+        }
+    }
+    pub fn remove(self: &'a mut JDB<'a>, uuid: String) -> Result<usize, Box<Error>> {
+        match self.find(& uuid) {
+            None => Err(Box::new(NotFoundError::new(uuid.clone()))),
+            Some(index) => {
+                // remove the config file first
+                let mut path = self.dir.join(uuid.clone());
+                path.set_extension("json");
+                fs::remove_file(&path)?;
+                self.index.entries.remove(index);
+                self.save()?;
+                Ok(index)
+            }
+        }
+    }
+    pub fn print(self: &'a JDB<'a>) {
+        println!(
+            "{:37} {:5} {:8} {:17} {}",
+            "UUID",
+            "TYPE",
+            "RAM",
+            "STATE",
+            "ALIAS"
+        );
+        for e in &(self.index.entries) {
+            self.print_entry(e);
+        }
     }
 
     fn config(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<Config, Box<Error>> {
@@ -101,26 +143,11 @@ impl<'a> JDB<'a> {
         serde_json::to_writer(file, &self.index)?;
         Ok(self.index.entries.len())
     }
-    pub fn find(self: &'a JDB<'a>, uuid: String) -> Option<&'a IdxEntry> {
-        for e in &self.index.entries {
-            if e.uuid == uuid {
-                return Some(e);
-            }
-        }
-        None
-    }
-    pub fn print(self: &'a JDB<'a>) {
-        println!(
-            "{:37} {:5} {:8} {:17} {}",
-            "UUID",
-            "TYPE",
-            "RAM",
-            "STATE",
-            "ALIAS"
-        );
-        for e in &(self.index.entries) {
-            self.print_entry(e);
-        }
+
+    fn find(self: &'a JDB<'a>, uuid: & String) -> Option<usize> {
+        self.index.entries.iter().position(
+            |x| *x.uuid == *uuid,
+        )
     }
 
     fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) {

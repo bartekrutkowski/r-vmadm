@@ -8,32 +8,18 @@ extern crate serde_json;
 extern crate uuid;
 
 use std::path::Path;
+use std::error::Error;
 use std::io;
 
-use std::error::Error;
-use std::fmt;
+
 
 mod jdb;
-use jdb::{JDB};
+use jdb::JDB;
+
+mod errors;
 
 static INDEX: &'static str = "/etc/jails/index";
 
-
-#[derive(Debug)]
-struct ConflictError {
-    uuid: String,
-}
-
-impl fmt::Display for ConflictError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Duplicated UUID:{}", self.uuid)
-    }
-}
-impl Error for ConflictError {
-    fn description(&self) -> &str {
-        "Conflict"
-    }
-}
 
 
 fn main() {
@@ -57,7 +43,7 @@ fn main() {
             ("list", Some(list_matches)) => list(list_matches),
             ("create", Some(create_matches)) => create(create_matches),
             ("update", Some(update_matches)) => dummy(update_matches),
-            ("destroy", Some(destroy_matches)) => dummy(destroy_matches),
+            ("destroy", Some(destroy_matches)) => destroy(destroy_matches),
             ("start", Some(start_matches)) => dummy(start_matches),
             ("stop", Some(stop_matches)) => dummy(stop_matches),
             ("", None) => {
@@ -71,7 +57,7 @@ fn main() {
             Err(e) => {
                 println!("error: {}", e);
                 std::process::exit(1)
-            },
+            }
         }
     };
 }
@@ -85,14 +71,17 @@ fn list(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     db.print();
     Ok(0)
 }
+
 fn create(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(Path::new(INDEX))?;
     let conf: jdb::Config = serde_json::from_reader(io::stdin())?;
-    match db.find(conf.uuid.clone()) {
-        None => {
-            db.insert(conf)?;
-            Ok(0)
-        }
-        Some(_) => Err(Box::new(ConflictError { uuid: conf.uuid })),
-    }
+    db.insert(conf)?;
+    Ok(0)
+}
+
+fn destroy(matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let mut db = JDB::open(Path::new(INDEX))?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    db.remove(uuid)?;
+    Ok(0)
 }
