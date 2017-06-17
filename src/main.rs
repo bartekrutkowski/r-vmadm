@@ -67,22 +67,25 @@ fn main() {
             _ => unreachable!(),
         };
         match r {
-            Ok(v) => v,
-            Err(_) => 1,
+            Ok(exit_code) => std::process::exit(exit_code),
+            Err(e) => {
+                println!("error: {}", e);
+                std::process::exit(1)
+            },
         }
     };
 }
 
-fn dummy(_matches: &clap::ArgMatches) -> Result<u8, Box<Error>> {
+fn dummy(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn list(_matches: &clap::ArgMatches) -> Result<u8, Box<Error>> {
+fn list(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(Path::new(INDEX))?;
     db.print();
     Ok(0)
 }
-fn create(_matches: &clap::ArgMatches) -> Result<u8, Box<Error>> {
+fn create(_matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(Path::new(INDEX))?;
     let conf: jdb::Config = serde_json::from_reader(io::stdin())?;
     match db.find(conf.uuid.clone()) {

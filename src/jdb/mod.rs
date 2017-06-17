@@ -4,7 +4,6 @@ use std::path::Path;
 use std::str;
 use uuid::Uuid;
 
-
 use serde_json;
 
 #[derive(Debug, Serialize, Deserialize)]
