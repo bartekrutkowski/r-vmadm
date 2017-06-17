@@ -13,10 +13,10 @@ use std::io;
 
 
 
-mod jdb;
+pub mod jdb;
 use jdb::JDB;
 
-mod errors;
+pub mod errors;
 
 static INDEX: &'static str = "/etc/jails/index";
 
