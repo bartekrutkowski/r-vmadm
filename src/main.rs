@@ -98,7 +98,7 @@ fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     Ok(0)
 }
 
-fn destroy(conf: & Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+// fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(&conf.conf_dir)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     db.remove(uuid.as_str())?;

@@ -64,7 +64,6 @@ impl NotFoundError {
     pub fn bx(uuid: &str) -> Box<Error> {
         Box::new(NotFoundError::new(uuid))
     }
-
 }
 
 impl fmt::Display for NotFoundError {

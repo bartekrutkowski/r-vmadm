@@ -20,7 +20,7 @@ pub struct Config {
     cpu: u64,
     disk: u64,
     #[serde(default = "bfalse")]
-    autostart: bool
+    autostart: bool,
 }
 fn new_uuid() -> String {
     Uuid::new_v4().hyphenated().to_string()
@@ -91,7 +91,7 @@ impl<'a> JDB<'a> {
                 };
                 let db = JDB {
                     index: index,
-                    dir:  Path::new(path),
+                    dir: Path::new(path),
                 };
                 db.save()?;
                 Ok(db)
@@ -129,7 +129,7 @@ impl<'a> JDB<'a> {
 
     /// Removes a jail with a given uuid from the index and removes it's
     /// config file.
-    pub fn remove(self: &'a mut JDB<'a>, uuid: & str) -> Result<usize, Box<Error>> {
+    pub fn remove(self: &'a mut JDB<'a>, uuid: &str) -> Result<usize, Box<Error>> {
         match self.find(uuid) {
             None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
@@ -175,10 +175,8 @@ impl<'a> JDB<'a> {
         Ok(self.index.entries.len())
     }
     /// Finds an entry for a given uuid
-    fn find(self: &'a JDB<'a>, uuid: & str) -> Option<usize> {
-        self.index.entries.iter().position(
-            |x| *x.uuid == *uuid,
-        )
+    fn find(self: &'a JDB<'a>, uuid: &str) -> Option<usize> {
+        self.index.entries.iter().position(|x| *x.uuid == *uuid)
     }
 
     fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) {
