@@ -15,12 +15,11 @@ pub struct Config {
     pool: String,
 }
 
-impl<'a> Config {
+impl Config {
     pub fn new() -> Result<Self, Box<Error>> {
         let mut file = File::open(CONFIG)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents).expect("Failed to read config file.");
-        let c: &'a String = &contents;
         let config: Config = toml::from_str(contents.as_str())?;
         Ok(config)
     }
