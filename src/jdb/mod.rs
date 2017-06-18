@@ -19,7 +19,7 @@ pub struct Config {
     ram: u64,
     cpu: u64,
     disk: u64,
-    #[serde(default = "new_uuid")]
+    #[serde(default = "bfalse")]
     autostart: bool
 }
 fn new_uuid() -> String {
@@ -73,7 +73,7 @@ impl<'a> JDB<'a> {
     /// let db = JDB::open("/etc/jails/index");
     /// ```
 
-    pub fn open(path: &'a String) -> Result<Self, Box<Error>> {
+    pub fn open(path: &'a str) -> Result<Self, Box<Error>> {
         let idx_file = Path::new(path);
         match File::open(idx_file.join("index")) {
             Ok(file) => {
@@ -123,18 +123,18 @@ impl<'a> JDB<'a> {
                 serde_json::to_writer(file, &config)?;
                 Ok(config)
             }
-            Some(_) => Err(ConflictError::bx(config.uuid)),
+            Some(_) => Err(ConflictError::bx(config.uuid.as_str())),
         }
     }
 
     /// Removes a jail with a given uuid from the index and removes it's
     /// config file.
-    pub fn remove(self: &'a mut JDB<'a>, uuid: String) -> Result<usize, Box<Error>> {
-        match self.find(& uuid) {
-            None => Err(NotFoundError::bx(uuid.clone())),
+    pub fn remove(self: &'a mut JDB<'a>, uuid: & str) -> Result<usize, Box<Error>> {
+        match self.find(uuid) {
+            None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
                 // remove the config file first
-                let mut path = self.dir.join(uuid.clone());
+                let mut path = self.dir.join(uuid);
                 path.set_extension("json");
                 fs::remove_file(&path)?;
                 self.index.entries.remove(index);
@@ -175,7 +175,7 @@ impl<'a> JDB<'a> {
         Ok(self.index.entries.len())
     }
     /// Finds an entry for a given uuid
-    fn find(self: &'a JDB<'a>, uuid: & String) -> Option<usize> {
+    fn find(self: &'a JDB<'a>, uuid: & str) -> Option<usize> {
         self.index.entries.iter().position(
             |x| *x.uuid == *uuid,
         )

@@ -1,3 +1,12 @@
+#![deny(trivial_numeric_casts,
+// missing_docs,
+        unstable_features,
+        unused_import_braces,
+)]
+
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+
 #[macro_use]
 extern crate clap;
 
@@ -8,10 +17,8 @@ extern crate serde_json;
 extern crate uuid;
 extern crate toml;
 
-use std::path::Path;
 use std::error::Error;
 use std::io;
-use std::fs::File;
 
 mod zfs;
 
@@ -23,7 +30,6 @@ use config::Config;
 
 pub mod errors;
 use errors::GenericError;
-static INDEX: &'static str = "/etc/jails/index";
 
 fn main() {
     use clap::App;
@@ -34,17 +40,17 @@ fn main() {
     let config = Config::new().unwrap();
     let r = if matches.is_present("startup") {
         match matches.subcommand() {
-            ("", None) => startup(config),
+            ("", None) => startup(&config),
             _ => Err(GenericError::bx("Can not use startup with a subcommand")),
         }
     } else {
         match matches.subcommand() {
-            ("list", Some(list_matches)) => list(config, list_matches),
-            ("create", Some(create_matches)) => create(config, create_matches),
-            ("update", Some(update_matches)) => update(config, update_matches),
-            ("destroy", Some(destroy_matches)) => destroy(config, destroy_matches),
-            ("start", Some(start_matches)) => start(config, start_matches),
-            ("stop", Some(stop_matches)) => stop(config, stop_matches),
+            ("list", Some(list_matches)) => list(&config, list_matches),
+            ("create", Some(create_matches)) => create(&config, create_matches),
+            ("update", Some(update_matches)) => update(&config, update_matches),
+            ("destroy", Some(destroy_matches)) => destroy(&config, destroy_matches),
+            ("start", Some(start_matches)) => start(&config, start_matches),
+            ("stop", Some(stop_matches)) => stop(&config, stop_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
                 Ok(0)
@@ -62,39 +68,39 @@ fn main() {
     }
 }
 
-fn startup(_conf: Config) -> Result<i32, Box<Error>> {
+fn startup(_conf: &Config) -> Result<i32, Box<Error>> {
     println!("{:?}", zfs::list("tpool"));
     Ok(0)
 }
 
-fn start(_conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn start(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn stop(_conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn stop(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn update(_conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn update(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn list(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(&conf.conf_dir)?;
     db.print();
     Ok(0)
 }
 
-fn create(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(&conf.conf_dir)?;
     let conf: jdb::Config = serde_json::from_reader(io::stdin())?;
     db.insert(conf)?;
     Ok(0)
 }
 
-fn destroy(conf: Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn destroy(conf: & Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(&conf.conf_dir)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
-    db.remove(uuid)?;
+    db.remove(uuid.as_str())?;
     Ok(0)
 }

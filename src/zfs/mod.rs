@@ -16,11 +16,11 @@ pub fn list(pool: &str) -> Vec<ZFSEntry> {
     );
     let reply = String::from_utf8_lossy(&output.stdout);
     println!("{:?}", reply);
-    reply.split("\n").filter(|x| *x != "").map(&deconstruct_entry).collect()
+    reply.split('\n').filter(|x| *x != "").map(&deconstruct_entry).collect()
 }
 
 fn deconstruct_entry(line: &str) -> ZFSEntry {
-    let mut parts = line.split("\t");
+    let mut parts = line.split('\t');
     let name = parts.next().unwrap();
     let used: u64 = parts.next().unwrap().parse().unwrap();
     let avail: u64 = parts.next().unwrap().parse().unwrap();

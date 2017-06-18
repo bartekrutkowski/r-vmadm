@@ -33,10 +33,10 @@ pub struct ConflictError {
 }
 
 impl ConflictError {
-    pub fn new(uuid: String) -> ConflictError {
-        ConflictError { uuid: uuid }
+    pub fn new(uuid: &str) -> ConflictError {
+        ConflictError { uuid: String::from(uuid) }
     }
-    pub fn bx(uuid: String) -> Box<Error> {
+    pub fn bx(uuid: &str) -> Box<Error> {
         Box::new(ConflictError::new(uuid))
     }
 }
@@ -58,10 +58,10 @@ pub struct NotFoundError {
     uuid: String,
 }
 impl NotFoundError {
-    pub fn new(uuid: String) -> NotFoundError {
-        NotFoundError { uuid: uuid }
+    pub fn new(uuid: &str) -> NotFoundError {
+        NotFoundError { uuid: String::from(uuid) }
     }
-    pub fn bx(uuid: String) -> Box<Error> {
+    pub fn bx(uuid: &str) -> Box<Error> {
         Box::new(NotFoundError::new(uuid))
     }
 
