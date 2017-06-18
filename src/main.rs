@@ -17,6 +17,13 @@ extern crate serde_json;
 extern crate uuid;
 extern crate toml;
 
+#[macro_use]
+extern crate slog;
+extern crate slog_term;
+extern crate slog_async;
+
+use slog::Drain;
+
 use std::error::Error;
 use std::io;
 
@@ -37,7 +44,14 @@ fn main() {
     let mut help_app = App::from_yaml(yaml).version(crate_version!());
     let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
 
-    let config = Config::new().unwrap();
+    let decorator = slog_term::TermDecorator::new().build();
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
+
+    let root = slog::Logger::root(drain, o!());
+
+
+    let config: Config = Config::new(root).unwrap();
     let r = if matches.is_present("startup") {
         match matches.subcommand() {
             ("", None) => startup(&config),
@@ -62,14 +76,13 @@ fn main() {
     match r {
         Ok(exit_code) => std::process::exit(exit_code),
         Err(e) => {
-            println!("error: {}", e);
+            crit!(config.logger, "error: {}", e);
             std::process::exit(1)
         }
     }
 }
 
 fn startup(_conf: &Config) -> Result<i32, Box<Error>> {
-    println!("{:?}", zfs::list("tpool"));
     Ok(0)
 }
 
@@ -86,19 +99,19 @@ fn update(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>
 }
 
 fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let db = JDB::open(&conf.conf_dir)?;
+    let db = JDB::open(conf)?;
     db.print()
 }
 
 fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(&conf.conf_dir)?;
-    let conf: jdb::Config = serde_json::from_reader(io::stdin())?;
+    let mut db = JDB::open(conf)?;
+    let conf: jdb::JailConfig = serde_json::from_reader(io::stdin())?;
     db.insert(conf)?;
     Ok(0)
 }
 
 fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(&conf.conf_dir)?;
+    let mut db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     db.remove(uuid.as_str())?;
     Ok(0)

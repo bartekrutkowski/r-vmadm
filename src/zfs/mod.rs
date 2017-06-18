@@ -21,7 +21,6 @@ pub fn list(pool: &str) -> Result<Vec<ZFSEntry>, Box<Error>> {
         .output()
         .expect("zfs list failed");
     let reply = String::from_utf8_lossy(&output.stdout);
-    println!("{:?}", reply);
     let mut res = Vec::new();
 
     //Ok(reply.split('\n').filter(|x| *x != "").map(&deconstruct_entry).collect())
@@ -31,7 +30,7 @@ pub fn list(pool: &str) -> Result<Vec<ZFSEntry>, Box<Error>> {
     }
     Ok(res)
 }
-/// deconstructs a line from zfs list into an ZFSEntry.
+/// deconstructs a line from zfs list into an `ZFSEntry`.
 fn deconstruct_entry(line: &str) -> Result<ZFSEntry, Box<Error>> {
     let mut parts = line.split('\t');
     let name = parts.next().ok_or_else(
