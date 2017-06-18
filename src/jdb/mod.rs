@@ -15,9 +15,19 @@ pub struct Config {
     #[serde(default = "new_uuid")]
     pub uuid: String,
     alias: String,
+    hostname: String,
     ram: u64,
     cpu: u64,
     disk: u64,
+    #[serde(default = "new_uuid")]
+    autostart: bool
+}
+fn new_uuid() -> String {
+    Uuid::new_v4().hyphenated().to_string()
+}
+
+fn bfalse() -> bool {
+    false
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,9 +45,6 @@ impl PartialEq for IdxEntry {
     }
 }
 
-fn new_uuid() -> String {
-    Uuid::new_v4().hyphenated().to_string()
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Index {
@@ -66,14 +73,14 @@ impl<'a> JDB<'a> {
     /// let db = JDB::open("/etc/jails/index");
     /// ```
 
-    pub fn open(path: &'a Path) -> Result<Self, Box<Error>> {
-        match File::open(path) {
+    pub fn open(path: &'a String) -> Result<Self, Box<Error>> {
+        let idx_file = Path::new(path);
+        match File::open(idx_file.join("index")) {
             Ok(file) => {
                 let index: Index = serde_json::from_reader(file)?;
                 Ok(JDB {
                     index: index,
-
-                    dir: path.parent().unwrap(),
+                    dir: Path::new(path),
                 })
             }
             Err(_) => {
@@ -84,7 +91,7 @@ impl<'a> JDB<'a> {
                 };
                 let db = JDB {
                     index: index,
-                    dir: path.parent().unwrap(),
+                    dir:  Path::new(path),
                 };
                 db.save()?;
                 Ok(db)

@@ -62,38 +62,38 @@ fn main() {
     }
 }
 
-fn startup(conf: Config) -> Result<i32, Box<Error>> {
+fn startup(_conf: Config) -> Result<i32, Box<Error>> {
     println!("{:?}", zfs::list("tpool"));
     Ok(0)
 }
 
-fn start(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn start(_conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn stop(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn stop(_conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn update(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn update(_conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
 fn list(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let db = JDB::open(Path::new(INDEX))?;
+    let db = JDB::open(&conf.conf_dir)?;
     db.print();
     Ok(0)
 }
 
 fn create(conf: Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(Path::new(INDEX))?;
+    let mut db = JDB::open(&conf.conf_dir)?;
     let conf: jdb::Config = serde_json::from_reader(io::stdin())?;
     db.insert(conf)?;
     Ok(0)
 }
 
 fn destroy(conf: Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(Path::new(INDEX))?;
+    let mut db = JDB::open(&conf.conf_dir)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     db.remove(uuid)?;
     Ok(0)

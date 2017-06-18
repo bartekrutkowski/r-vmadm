@@ -12,7 +12,13 @@ static CONFIG: &'static str = "/etc/vmadm.toml";
 
 #[derive(Deserialize)]
 pub struct Config {
-    pool: String,
+    pub pool: String,
+    #[serde(default = "default_conf_dir")]
+    pub conf_dir: String
+}
+
+fn default_conf_dir() -> String {
+    "/etc/jails".to_string()
 }
 
 impl Config {
