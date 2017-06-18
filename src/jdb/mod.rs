@@ -145,7 +145,7 @@ impl<'a> JDB<'a> {
     }
 
     /// Prints the jdb database
-    pub fn print(self: &'a JDB<'a>) {
+    pub fn print(self: &'a JDB<'a>) -> Result<i32, Box<Error>> {
         println!(
             "{:37} {:5} {:8} {:17} {}",
             "UUID",
@@ -155,8 +155,9 @@ impl<'a> JDB<'a> {
             "ALIAS"
         );
         for e in &(self.index.entries) {
-            self.print_entry(e);
+            self.print_entry(e)?;
         }
+        Ok(0)
     }
 
     /// Reads the config file for a given entry
@@ -178,9 +179,9 @@ impl<'a> JDB<'a> {
     fn find(self: &'a JDB<'a>, uuid: &str) -> Option<usize> {
         self.index.entries.iter().position(|x| *x.uuid == *uuid)
     }
-
-    fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) {
-        let conf = self.config(entry).unwrap();
+    /// Gets the config and prints an etry
+    fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<i32, Box<Error>> {
+        let conf = self.config(entry)?;
         println!(
             "{:37} {:5} {:8} {:17} {}",
             conf.uuid,
@@ -188,6 +189,7 @@ impl<'a> JDB<'a> {
             conf.ram,
             entry.state,
             conf.alias
-        )
+        );
+        Ok(0)
     }
 }
