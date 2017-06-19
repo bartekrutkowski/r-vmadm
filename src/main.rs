@@ -1,7 +1,7 @@
 //! vmadm compatible jail manager
 
 #![deny(trivial_numeric_casts,
-        missing_docs, // we can't have this I think it fails on unexplaind glob al thingies
+        missing_docs,
         unstable_features,
         unused_import_braces,
 )]
