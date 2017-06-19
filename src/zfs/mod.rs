@@ -45,6 +45,26 @@ pub fn get(dataset: &str) -> Result<ZFSEntry, Box<Error>> {
     }
 }
 
+/// reads the zfs datasets in a pool
+pub fn origin(dataset: &str) -> Result<String, Box<Error>> {
+    let output = Command::new("zfs")
+        .args(&["get", "-p", "-H", "origin", dataset])
+        .output()
+        .expect("zfs list failed");
+    if output.status.success() {
+        let out = String::from_utf8_lossy(&output.stdout).to_string();
+        let mut reply = out.split('\t');
+        reply.next().ok_or_else(
+        || GenericError::bx("NAME field missing"))?;
+        reply.next().ok_or_else(
+        || GenericError::bx("PROPERTY field missing"))?;
+        let origin = reply.next().ok_or_else(
+        || GenericError::bx("PROPERTY field missing"))?;
+        Ok(String::from(origin))
+    } else {
+        Err(GenericError::bx("Failed to get dataset"))
+    }
+}
 /// create a zfs datasets in a pool
 pub fn create(dataset: &str) -> Result<i32, Box<Error>> {
     let output = Command::new("zfs")
@@ -66,8 +86,7 @@ pub fn snapshot(dataset: &str, snapshot: &str) -> Result<String, Box<Error>> {
     let output = Command::new("zfs")
         .args(&["snapshot", snap.as_str()])
         .output()
-        .expect("zfs create snapshot");
-    println!("zfs snapshot {}", snap);
+        .expect("zfs snapshot failed");
     if output.status.success() {
         Ok(snap)
     } else {
@@ -75,14 +94,12 @@ pub fn snapshot(dataset: &str, snapshot: &str) -> Result<String, Box<Error>> {
     }
 }
 
-
 /// clones a zfs snapshot
 pub fn clone(snapshot: &str, dataset: &str) -> Result<i32, Box<Error>> {
     let output = Command::new("zfs")
         .args(&["clone", snapshot, dataset])
         .output()
-        .expect("zfs create snapshot");
-    println!("zfs clone {} {}", snapshot, dataset);
+        .expect("zfs clone failed");
     if output.status.success() {
         Ok(0)
     } else {
@@ -94,7 +111,7 @@ pub fn destroy(dataset: &str) -> Result<i32, Box<Error>> {
     let output = Command::new("zfs")
         .args(&["destroy", dataset])
         .output()
-        .expect("zfs create failed");
+        .expect("zfs destroy failed");
     if output.status.success() {
         Ok(0)
     } else {

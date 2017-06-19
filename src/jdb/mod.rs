@@ -149,7 +149,7 @@ impl<'a> JDB<'a> {
             Some(index) => {
                 // remove the config file first
                 let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
-                path.join(uuid);
+                path.push(uuid);
                 path.set_extension("json");
                 fs::remove_file(&path)?;
                 self.index.entries.remove(index);
@@ -196,9 +196,7 @@ impl<'a> JDB<'a> {
     pub fn get(self: &'a JDB<'a>, uuid: &str) -> Option<&IdxEntry> {
         match self.find(uuid) {
             None => None,
-            Some(index) => {
-                Some(&self.index.entries[index])
-            }
+            Some(index) => Some(&self.index.entries[index]),
         }
     }
     /// Finds an entry for a given uuid

@@ -120,11 +120,20 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     let mut db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     match db.get(uuid.as_str()) {
-        Some(entry) => 
-        match zfs::destroy(entry.root.as_str()){
-            Ok(_) => debug!(conf.logger, "zfs dataset deleted: {}", entry.root),
-            Err(e) => warn!(conf.logger, "failed to delete dataset: {}", e)
-        },
+        Some(entry) => {
+            let origin = zfs::origin(entry.root.as_str());
+            match zfs::destroy(entry.root.as_str()) {
+                Ok(_) => debug!(conf.logger, "zfs dataset deleted: {}", entry.root),
+                Err(e) => warn!(conf.logger, "failed to delete dataset: {}", e),
+            };
+            match origin {
+                Ok(origin) => {
+                    zfs::destroy(origin.as_str())?;
+                    debug!(conf.logger, "zfs snapshot deleted: {}", origin)
+                },
+                Err(e) => warn!(conf.logger, "failed to delete origin: {}", e),
+            }
+        }
         None => return Err(NotFoundError::bx("Could not find VM")),
     };
     db.remove(uuid.as_str())?;
