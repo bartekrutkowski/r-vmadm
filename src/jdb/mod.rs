@@ -36,7 +36,7 @@ fn new_uuid() -> String {
 fn bfalse() -> bool {
     false
 }
-/// JailDB index entry
+/// `JailDB` index entry
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdxEntry {
     version: u32,
@@ -61,7 +61,7 @@ struct Index {
     pub entries: Vec<IdxEntry>,
 }
 
-/// JailDB main struct
+/// `JailDB` main struct
 #[derive(Debug)]
 pub struct JDB<'a> {
     config: &'a Config,
