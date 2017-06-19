@@ -1,15 +1,19 @@
 use std::error::Error;
 use std::fmt;
 
+
+/// Generic error that carries a message string
 #[derive(Debug)]
 pub struct GenericError {
     msg: String,
 }
 
 impl GenericError {
+    /// Initialize a new generic error
     pub fn new(msg: &str) -> GenericError {
         GenericError { msg: String::from(msg) }
     }
+    /// Create a new error in a box
     pub fn bx(msg: &str) -> Box<Error> {
         Box::new(GenericError::new(msg))
     }
@@ -27,15 +31,18 @@ impl Error for GenericError {
     }
 }
 
+/// Conflict error when a uuid is re-used
 #[derive(Debug)]
 pub struct ConflictError {
     uuid: String,
 }
 
 impl ConflictError {
+    /// Initialize a new conflict error
     pub fn new(uuid: &str) -> ConflictError {
         ConflictError { uuid: String::from(uuid) }
     }
+    /// Initialize a new conflict error in side a box
     pub fn bx(uuid: &str) -> Box<Error> {
         Box::new(ConflictError::new(uuid))
     }
@@ -53,14 +60,17 @@ impl Error for ConflictError {
     }
 }
 
+/// Conflict error when a uuid is not found
 #[derive(Debug)]
 pub struct NotFoundError {
     uuid: String,
 }
 impl NotFoundError {
+    /// Initialize a new conflict error
     pub fn new(uuid: &str) -> NotFoundError {
         NotFoundError { uuid: String::from(uuid) }
     }
+    /// Initialize a new conflict error in side a box
     pub fn bx(uuid: &str) -> Box<Error> {
         Box::new(NotFoundError::new(uuid))
     }

@@ -1,5 +1,7 @@
+// vmadm compatible jail manager
+
 #![deny(trivial_numeric_casts,
-// missing_docs,
+//        missing_docs, // we can't have this I think it fails on unexplaind glob al thingies
         unstable_features,
         unused_import_braces,
 )]
@@ -44,9 +46,10 @@ use errors::{GenericError, NotFoundError};
 /// Custom Drain logic
 struct RuntimeLevelFilter<D> {
     drain: D,
-    level: u64
+    level: u64,
 }
 
+/// Drain to define log leve via `-v` flags
 impl<D> Drain for RuntimeLevelFilter<D>
 where
     D: Drain,
@@ -76,7 +79,14 @@ where
     }
 }
 
+
+/// Main function
 fn main() {
+    let exit_code = run();
+    std::process::exit(exit_code)
+}
+
+fn run() -> i32 {
     use clap::App;
     let yaml = load_yaml!("cli.yml");
     let mut help_app = App::from_yaml(yaml).version(crate_version!());
@@ -84,13 +94,15 @@ fn main() {
 
     let decorator = slog_term::TermDecorator::new().build();
     let drain = slog_term::FullFormat::new(decorator).build().fuse();
-    let drain = slog_async::Async::new(drain).build().fuse();
+    let level = matches.occurrences_of("verbose");
     let drain = RuntimeLevelFilter {
         drain: drain,
-        level: matches.occurrences_of("v"),
+        level: level,
     }.fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
 
     let root = slog::Logger::root(drain, o!());
+
     let _guard = slog_scope::set_global_logger(root);
 
     let config: Config = Config::new().unwrap();
@@ -116,11 +128,11 @@ fn main() {
     };
     crit!("Execution done");
     match r {
-        Ok(0) => (),
-        Ok(exit_code) => std::process::exit(exit_code),
+        Ok(0) => 0,
+        Ok(exit_code) => exit_code,
         Err(e) => {
             crit!("error: {}", e);
-            std::process::exit(1)
+            1
         }
     }
 }

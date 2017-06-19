@@ -12,10 +12,13 @@ use errors::{NotFoundError, ConflictError};
 use config::Config;
 
 
+/// Jail configuration values
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JailConfig {
+    /// UUID of the jail
     #[serde(default = "new_uuid")]
     pub uuid: String,
+    /// UUID of the imaage
     pub image_uuid: String,
     alias: String,
     hostname: String,
@@ -33,11 +36,13 @@ fn new_uuid() -> String {
 fn bfalse() -> bool {
     false
 }
-
+/// JailDB index entry
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdxEntry {
     version: u32,
+    /// UUID of the jail
     pub uuid: String,
+    /// ZFS dataset root
     pub root: String,
     state: String,
     jail_type: String,
@@ -56,6 +61,7 @@ struct Index {
     pub entries: Vec<IdxEntry>,
 }
 
+/// JailDB main struct
 #[derive(Debug)]
 pub struct JDB<'a> {
     config: &'a Config,
@@ -203,6 +209,7 @@ impl<'a> JDB<'a> {
         Ok(self.index.entries.len())
     }
 
+    /// Fetches a `IdxEntry` from the `JDB`.
     pub fn get(self: &'a JDB<'a>, uuid: &str) -> Option<&IdxEntry> {
         match self.find(uuid) {
             None => None,

@@ -8,6 +8,7 @@ extern crate slog;
 
 static CONFIG: &'static str = "/etc/vmadm.toml";
 
+/// Global settings
 #[derive(Debug, Deserialize)]
 pub struct Settings {
     pub pool: String,
@@ -15,6 +16,7 @@ pub struct Settings {
     pub conf_dir: String,
 }
 
+/// Config object
 #[derive(Debug)]
 pub struct Config {
     pub settings: Settings
@@ -25,6 +27,7 @@ fn default_conf_dir() -> String {
 }
 
 impl Config {
+    /// Initializes config
     pub fn new() -> Result<Self, Box<Error>> {
         debug!("Loading config file"; "config" => CONFIG);
         let mut file = File::open(CONFIG)?;
