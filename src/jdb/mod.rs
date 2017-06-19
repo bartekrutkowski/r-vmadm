@@ -16,11 +16,12 @@ use config::Config;
 pub struct JailConfig {
     #[serde(default = "new_uuid")]
     pub uuid: String,
+    pub image_uuid: String,
     alias: String,
     hostname: String,
-    ram: u64,
-    cpu: u64,
-    disk: u64,
+    max_physical_memory: u64,
+    cpu_cap: u64,
+    quota: u64,
     #[serde(default = "bfalse")]
     autostart: bool,
 }
@@ -36,7 +37,7 @@ fn bfalse() -> bool {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdxEntry {
     version: u32,
-    uuid: String,
+    pub uuid: String,
     pub root: String,
     state: String,
     jail_type: String,
@@ -211,7 +212,7 @@ impl<'a> JDB<'a> {
             "{:37} {:5} {:8} {:17} {}",
             conf.uuid,
             "OS",
-            conf.ram,
+            conf.max_physical_memory,
             entry.state,
             conf.alias
         );

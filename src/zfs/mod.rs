@@ -32,12 +32,9 @@ pub fn list(pool: &str) -> Result<Vec<ZFSEntry>, Box<Error>> {
 }
 
 /// reads the zfs datasets in a pool
-pub fn get(pool: &str, dataset: &str) -> Result<ZFSEntry, Box<Error>> {
-    let mut path = String::from(pool);
-    path.push('/');
-    path.push_str(dataset);
+pub fn get(dataset: &str) -> Result<ZFSEntry, Box<Error>> {
     let output = Command::new("zfs")
-        .args(&["list", "-p", "-H", path.as_str()])
+        .args(&["list", "-p", "-H", dataset])
         .output()
         .expect("zfs list failed");
     if output.status.success() {
@@ -61,6 +58,37 @@ pub fn create(dataset: &str) -> Result<i32, Box<Error>> {
     }
 }
 
+/// create a zfs snapshot of a dataset
+pub fn snapshot(dataset: &str, snapshot: &str) -> Result<String, Box<Error>> {
+    let mut snap = String::from(dataset);
+    snap.push('@');
+    snap.push_str(snapshot);
+    let output = Command::new("zfs")
+        .args(&["snapshot", snap.as_str()])
+        .output()
+        .expect("zfs create snapshot");
+    println!("zfs snapshot {}", snap);
+    if output.status.success() {
+        Ok(snap)
+    } else {
+        Err(GenericError::bx("Failed create snapshot"))
+    }
+}
+
+
+/// clones a zfs snapshot
+pub fn clone(snapshot: &str, dataset: &str) -> Result<i32, Box<Error>> {
+    let output = Command::new("zfs")
+        .args(&["clone", snapshot, dataset])
+        .output()
+        .expect("zfs create snapshot");
+    println!("zfs clone {} {}", snapshot, dataset);
+    if output.status.success() {
+        Ok(0)
+    } else {
+        Err(GenericError::bx("Failed to clone dataset"))
+    }
+}
 /// destroy the zfs datasets in a pool
 pub fn destroy(dataset: &str) -> Result<i32, Box<Error>> {
     let output = Command::new("zfs")

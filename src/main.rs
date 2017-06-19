@@ -106,9 +106,13 @@ fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
 
 fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
-    let conf: jdb::JailConfig = serde_json::from_reader(io::stdin())?;
-    let entry = db.insert(conf)?;
-    zfs::create(entry.root.as_str())?;
+    let jail: jdb::JailConfig = serde_json::from_reader(io::stdin())?;
+    let mut dataset = conf.settings.pool.clone();
+    dataset.push('/');
+    dataset.push_str(jail.image_uuid.clone().as_str());
+    let entry = db.insert(jail)?;
+    let snap = zfs::snapshot(dataset.as_str(), entry.uuid.as_str())?;
+    zfs::clone(snap.as_str(), entry.root.as_str())?;
     Ok(0)
 }
 
