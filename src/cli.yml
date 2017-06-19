@@ -1,6 +1,6 @@
 name: vmadm
 author: Heinz N. Gies <heinz@project-fifo.net>
-about: vmadm compatible jail manage
+about: vmadm compatible jail manager
 args:
     - verbose:
         short: v
