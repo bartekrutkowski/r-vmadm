@@ -80,15 +80,18 @@ impl<'a> JDB<'a> {
     pub fn open(config: &'a Config) -> Result<Self, Box<Error>> {
         let mut idx_file = PathBuf::from(config.settings.conf_dir.as_str());
         idx_file.push("index");
+        debug!("Opening jdb"; "index" => idx_file.to_string_lossy().as_ref());
         match File::open(idx_file) {
             Ok(file) => {
                 let index: Index = serde_json::from_reader(file)?;
+                debug!("Found {} entries", index.entries.len());
                 Ok(JDB {
                     index: index,
                     config: config,
                 })
             }
             Err(_) => {
+                warn!("No database found creating new one.");
                 let entries: Vec<IdxEntry> = Vec::new();
                 let index: Index = Index {
                     version: 0,
@@ -109,6 +112,7 @@ impl<'a> JDB<'a> {
     /// Inserts a config into the database, writes the config file
     /// and adds it to the index.
     pub fn insert(self: &'a mut JDB<'a>, config: JailConfig) -> Result<IdxEntry, Box<Error>> {
+        debug!("Inserting new vm"; "vm" => &config.uuid);
         match self.find(&config.uuid) {
             None => {
                 let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
@@ -137,13 +141,17 @@ impl<'a> JDB<'a> {
                     root: root.clone(),
                 })
             }
-            Some(_) => Err(ConflictError::bx(config.uuid.as_str())),
+            Some(_) => {
+                warn!("Doublicate entry {}", config.uuid);
+                Err(ConflictError::bx(config.uuid.as_str()))
+            }
         }
     }
 
     /// Removes a jail with a given uuid from the index and removes it's
     /// config file.
     pub fn remove(self: &'a mut JDB<'a>, uuid: &str) -> Result<usize, Box<Error>> {
+        debug!("Removing vm"; "vm" => uuid);
         match self.find(uuid) {
             None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
@@ -177,6 +185,7 @@ impl<'a> JDB<'a> {
 
     /// Reads the config file for a given entry
     fn config(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<JailConfig, Box<Error>> {
+        debug!("Loading vm config"; "vm" => &entry.uuid);
         let mut config_path = PathBuf::from(self.config.settings.conf_dir.as_str());
         config_path.push(entry.uuid.clone());
         config_path.set_extension("json");
@@ -186,6 +195,7 @@ impl<'a> JDB<'a> {
     }
     /// Saves the database
     fn save(self: &'a JDB<'a>) -> Result<usize, Box<Error>> {
+        debug!("Saving database");
         let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
         path.push("index");
         let file = File::create(path)?;

@@ -17,8 +17,7 @@ pub struct Settings {
 
 #[derive(Debug)]
 pub struct Config {
-    pub settings: Settings,
-    pub logger: slog::Logger
+    pub settings: Settings
 }
 
 fn default_conf_dir() -> String {
@@ -26,14 +25,15 @@ fn default_conf_dir() -> String {
 }
 
 impl Config {
-    pub fn new(logger: slog::Logger) -> Result<Self, Box<Error>> {
+    pub fn new() -> Result<Self, Box<Error>> {
+        debug!("Loading config file"; "config" => CONFIG);
         let mut file = File::open(CONFIG)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents).expect(
             "Failed to read config file.",
         );
         let settings: Settings = toml::from_str(contents.as_str())?;
-        Ok(Config{settings: settings, logger: logger})
+        Ok(Config{settings: settings})
     }
     // add code here
 }

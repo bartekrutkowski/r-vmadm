@@ -16,6 +16,7 @@ pub struct ZFSEntry {
 
 /// reads the zfs datasets in a pool
 pub fn list(pool: &str) -> Result<Vec<ZFSEntry>, Box<Error>> {
+    debug!("Listing ZFS datasets"; "pool" => pool);
     let output = Command::new("zfs")
         .args(&["list", "-p", "-H", "-r", "-d1", pool])
         .output()
@@ -33,6 +34,7 @@ pub fn list(pool: &str) -> Result<Vec<ZFSEntry>, Box<Error>> {
 
 /// reads the zfs datasets in a pool
 pub fn get(dataset: &str) -> Result<ZFSEntry, Box<Error>> {
+    debug!("Reading ZFS dataset"; "dataset" => dataset);
     let output = Command::new("zfs")
         .args(&["list", "-p", "-H", dataset])
         .output()
@@ -47,6 +49,7 @@ pub fn get(dataset: &str) -> Result<ZFSEntry, Box<Error>> {
 
 /// reads the zfs datasets in a pool
 pub fn origin(dataset: &str) -> Result<String, Box<Error>> {
+    debug!("Fetching ZFS origin"; "dataset" => dataset);
     let output = Command::new("zfs")
         .args(&["get", "-p", "-H", "origin", dataset])
         .output()
@@ -67,6 +70,7 @@ pub fn origin(dataset: &str) -> Result<String, Box<Error>> {
 }
 /// create a zfs datasets in a pool
 pub fn create(dataset: &str) -> Result<i32, Box<Error>> {
+    debug!("Creating ZFS dataset"; "dataset" => dataset);
     let output = Command::new("zfs")
         .args(&["create", dataset])
         .output()
@@ -83,6 +87,7 @@ pub fn snapshot(dataset: &str, snapshot: &str) -> Result<String, Box<Error>> {
     let mut snap = String::from(dataset);
     snap.push('@');
     snap.push_str(snapshot);
+    debug!("Creating ZFS snapshot"; "snapshot" => snap.as_str());
     let output = Command::new("zfs")
         .args(&["snapshot", snap.as_str()])
         .output()
@@ -96,6 +101,7 @@ pub fn snapshot(dataset: &str, snapshot: &str) -> Result<String, Box<Error>> {
 
 /// clones a zfs snapshot
 pub fn clone(snapshot: &str, dataset: &str) -> Result<i32, Box<Error>> {
+    debug!("Cloning ZFS snapshot"; "snapshot" => snapshot, "dataset" => dataset);
     let output = Command::new("zfs")
         .args(&["clone", snapshot, dataset])
         .output()
@@ -108,6 +114,7 @@ pub fn clone(snapshot: &str, dataset: &str) -> Result<i32, Box<Error>> {
 }
 /// destroy the zfs datasets in a pool
 pub fn destroy(dataset: &str) -> Result<i32, Box<Error>> {
+    debug!("Destroying ZFS dataset"; "dataset" => dataset);
     let output = Command::new("zfs")
         .args(&["destroy", dataset])
         .output()

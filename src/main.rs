@@ -21,9 +21,12 @@ extern crate toml;
 extern crate slog;
 extern crate slog_term;
 extern crate slog_async;
-
+#[macro_use]
+extern crate slog_scope;
 use slog::Drain;
 
+
+use std::result;
 use std::error::Error;
 use std::io;
 
@@ -38,6 +41,41 @@ use config::Config;
 pub mod errors;
 use errors::{GenericError, NotFoundError};
 
+/// Custom Drain logic
+struct RuntimeLevelFilter<D> {
+    drain: D,
+    level: u64
+}
+
+impl<D> Drain for RuntimeLevelFilter<D>
+where
+    D: Drain,
+{
+    type Ok = Option<D::Ok>;
+    type Err = Option<D::Err>;
+
+    fn log(
+        &self,
+        record: &slog::Record,
+        values: &slog::OwnedKVList,
+    ) -> result::Result<Self::Ok, Self::Err> {
+        let current_level = match self.level {
+            1 => slog::Level::Critical,
+            2 => slog::Level::Error,
+            3 => slog::Level::Warning,
+            4 => slog::Level::Info,
+            5 => slog::Level::Debug,
+            6 => slog::Level::Trace,
+            _ => return Ok(None),
+        };
+        if record.level().is_at_least(current_level) {
+            self.drain.log(record, values).map(Some).map_err(Some)
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 fn main() {
     use clap::App;
     let yaml = load_yaml!("cli.yml");
@@ -47,11 +85,15 @@ fn main() {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = slog_term::FullFormat::new(decorator).build().fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
+    let drain = RuntimeLevelFilter {
+        drain: drain,
+        level: matches.occurrences_of("v"),
+    }.fuse();
 
     let root = slog::Logger::root(drain, o!());
+    let _guard = slog_scope::set_global_logger(root);
 
-
-    let config: Config = Config::new(root).unwrap();
+    let config: Config = Config::new().unwrap();
     let r = if matches.is_present("startup") {
         match matches.subcommand() {
             ("", None) => startup(&config),
@@ -72,12 +114,12 @@ fn main() {
             _ => unreachable!(),
         }
     };
-
+    crit!("Execution done");
     match r {
+        Ok(0) => (),
         Ok(exit_code) => std::process::exit(exit_code),
         Err(e) => {
-            crit!(config.logger, "error: {}", e);
-            println!("error: {}", e);
+            crit!("error: {}", e);
             std::process::exit(1)
         }
     }
@@ -119,19 +161,20 @@ fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
 fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
         Some(entry) => {
             let origin = zfs::origin(entry.root.as_str());
             match zfs::destroy(entry.root.as_str()) {
-                Ok(_) => debug!(conf.logger, "zfs dataset deleted: {}", entry.root),
-                Err(e) => warn!(conf.logger, "failed to delete dataset: {}", e),
+                Ok(_) => debug!("zfs dataset deleted: {}", entry.root),
+                Err(e) => warn!("failed to delete dataset: {}", e),
             };
             match origin {
                 Ok(origin) => {
                     zfs::destroy(origin.as_str())?;
-                    debug!(conf.logger, "zfs snapshot deleted: {}", origin)
-                },
-                Err(e) => warn!(conf.logger, "failed to delete origin: {}", e),
+                    debug!("zfs snapshot deleted: {}", origin)
+                }
+                Err(e) => warn!("failed to delete origin: {}", e),
             }
         }
         None => return Err(NotFoundError::bx("Could not find VM")),
