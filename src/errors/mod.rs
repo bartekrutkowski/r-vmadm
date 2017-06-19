@@ -1,6 +1,7 @@
+//! Errors for vmadm
+
 use std::error::Error;
 use std::fmt;
-
 
 /// Generic error that carries a message string
 #[derive(Debug)]

@@ -1,4 +1,6 @@
 
+//! Wrapper around zfs commands
+
 use std::error::Error;
 use std::process::Command;
 use errors::GenericError;
