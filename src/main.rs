@@ -36,7 +36,7 @@ mod config;
 use config::Config;
 
 pub mod errors;
-use errors::GenericError;
+use errors::{GenericError, NotFoundError};
 
 fn main() {
     use clap::App;
@@ -77,6 +77,7 @@ fn main() {
         Ok(exit_code) => std::process::exit(exit_code),
         Err(e) => {
             crit!(config.logger, "error: {}", e);
+            println!("error: {}", e);
             std::process::exit(1)
         }
     }
@@ -106,13 +107,22 @@ fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
 fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
     let conf: jdb::JailConfig = serde_json::from_reader(io::stdin())?;
-    db.insert(conf)?;
+    let entry = db.insert(conf)?;
+    zfs::create(entry.root.as_str())?;
     Ok(0)
 }
 
 fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
+    match db.get(uuid.as_str()) {
+        Some(entry) => 
+        match zfs::destroy(entry.root.as_str()){
+            Ok(_) => debug!(conf.logger, "zfs dataset deleted: {}", entry.root),
+            Err(e) => warn!(conf.logger, "failed to delete dataset: {}", e)
+        },
+        None => return Err(NotFoundError::bx("Could not find VM")),
+    };
     db.remove(uuid.as_str())?;
     Ok(0)
 }

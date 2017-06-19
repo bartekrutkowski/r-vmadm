@@ -30,6 +30,50 @@ pub fn list(pool: &str) -> Result<Vec<ZFSEntry>, Box<Error>> {
     }
     Ok(res)
 }
+
+/// reads the zfs datasets in a pool
+pub fn get(pool: &str, dataset: &str) -> Result<ZFSEntry, Box<Error>> {
+    let mut path = String::from(pool);
+    path.push('/');
+    path.push_str(dataset);
+    let output = Command::new("zfs")
+        .args(&["list", "-p", "-H", path.as_str()])
+        .output()
+        .expect("zfs list failed");
+    if output.status.success() {
+        let reply = String::from_utf8_lossy(&output.stdout).to_string();
+        deconstruct_entry(reply.as_str())
+    } else {
+        Err(GenericError::bx("Failed to get dataset"))
+    }
+}
+
+/// create a zfs datasets in a pool
+pub fn create(dataset: &str) -> Result<i32, Box<Error>> {
+    let output = Command::new("zfs")
+        .args(&["create", dataset])
+        .output()
+        .expect("zfs create failed");
+    if output.status.success() {
+        Ok(0)
+    } else {
+        Err(GenericError::bx("Failed create dataset"))
+    }
+}
+
+/// destroy the zfs datasets in a pool
+pub fn destroy(dataset: &str) -> Result<i32, Box<Error>> {
+    let output = Command::new("zfs")
+        .args(&["destroy", dataset])
+        .output()
+        .expect("zfs create failed");
+    if output.status.success() {
+        Ok(0)
+    } else {
+        Err(GenericError::bx("Failed destroy dataset"))
+    }
+}
+
 /// deconstructs a line from zfs list into an `ZFSEntry`.
 fn deconstruct_entry(line: &str) -> Result<ZFSEntry, Box<Error>> {
     let mut parts = line.split('\t');

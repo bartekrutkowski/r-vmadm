@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs;
 use std::fs::File;
-use std::path::Path;
+use std::path::PathBuf;
 use std::str;
 use std::cmp::PartialEq;
 use uuid::Uuid;
@@ -10,6 +10,7 @@ use serde_json;
 
 use errors::{NotFoundError, ConflictError};
 use config::Config;
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JailConfig {
@@ -23,6 +24,7 @@ pub struct JailConfig {
     #[serde(default = "bfalse")]
     autostart: bool,
 }
+
 fn new_uuid() -> String {
     Uuid::new_v4().hyphenated().to_string()
 }
@@ -32,10 +34,10 @@ fn bfalse() -> bool {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct IdxEntry {
+pub struct IdxEntry {
     version: u32,
     uuid: String,
-    root: String,
+    pub root: String,
     state: String,
     jail_type: String,
 }
@@ -75,8 +77,9 @@ impl<'a> JDB<'a> {
     /// ```
 
     pub fn open(config: &'a Config) -> Result<Self, Box<Error>> {
-        let idx_file = Path::new(config.settings.conf_dir.as_str());
-        match File::open(idx_file.join("index")) {
+        let mut idx_file = PathBuf::from(config.settings.conf_dir.as_str());
+        idx_file.push("index");
+        match File::open(idx_file) {
             Ok(file) => {
                 let index: Index = serde_json::from_reader(file)?;
                 Ok(JDB {
@@ -104,25 +107,34 @@ impl<'a> JDB<'a> {
 
     /// Inserts a config into the database, writes the config file
     /// and adds it to the index.
-    pub fn insert(self: &'a mut JDB<'a>, config: JailConfig) -> Result<JailConfig, Box<Error>> {
+    pub fn insert(self: &'a mut JDB<'a>, config: JailConfig) -> Result<IdxEntry, Box<Error>> {
         match self.find(&config.uuid) {
             None => {
-                let path = Path::new(self.config.settings.conf_dir.as_str());
-                path.join(config.uuid.clone()).set_extension("json");
-                let file = File::create(&path)?;
-                let mut root = String::from("/jails/");
+                let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
+                path.push(config.uuid.clone());
+                path.set_extension("json");
+                let file = File::create(path)?;
+                let mut root = String::from(self.config.settings.pool.as_str());
+                root.push('/');
                 root.push_str(&config.uuid.clone());
                 let e = IdxEntry {
                     version: 0,
                     uuid: config.uuid.clone(),
                     state: String::from("installing"),
                     jail_type: String::from("base"),
-                    root: root,
+                    root: root.clone(),
                 };
                 self.index.entries.push(e);
                 self.save()?;
                 serde_json::to_writer(file, &config)?;
-                Ok(config)
+                // This is ugly but I don't know any better.
+                Ok(IdxEntry {
+                    version: 0,
+                    uuid: config.uuid.clone(),
+                    state: String::from("installing"),
+                    jail_type: String::from("base"),
+                    root: root.clone(),
+                })
             }
             Some(_) => Err(ConflictError::bx(config.uuid.as_str())),
         }
@@ -135,8 +147,9 @@ impl<'a> JDB<'a> {
             None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
                 // remove the config file first
-                let path = Path::new(self.config.settings.conf_dir.as_str());
-                path.join(uuid).set_extension("json");
+                let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
+                path.join(uuid);
+                path.set_extension("json");
                 fs::remove_file(&path)?;
                 self.index.entries.remove(index);
                 self.save()?;
@@ -163,19 +176,29 @@ impl<'a> JDB<'a> {
 
     /// Reads the config file for a given entry
     fn config(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<JailConfig, Box<Error>> {
-        let config_path = Path::new(self.config.settings.conf_dir.as_str());
-        config_path.join(entry.uuid.clone()).set_extension("json");
+        let mut config_path = PathBuf::from(self.config.settings.conf_dir.as_str());
+        config_path.push(entry.uuid.clone());
+        config_path.set_extension("json");
         let config_file = File::open(config_path)?;
         let conf: JailConfig = serde_json::from_reader(config_file)?;
         Ok(conf)
     }
     /// Saves the database
     fn save(self: &'a JDB<'a>) -> Result<usize, Box<Error>> {
-        let path = Path::new(self.config.settings.conf_dir.as_str());
-        path.join("index");
+        let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
+        path.push("index");
         let file = File::create(path)?;
         serde_json::to_writer(file, &self.index)?;
         Ok(self.index.entries.len())
+    }
+
+    pub fn get(self: &'a JDB<'a>, uuid: &str) -> Option<&IdxEntry> {
+        match self.find(uuid) {
+            None => None,
+            Some(index) => {
+                Some(&self.index.entries[index])
+            }
+        }
     }
     /// Finds an entry for a given uuid
     fn find(self: &'a JDB<'a>, uuid: &str) -> Option<usize> {

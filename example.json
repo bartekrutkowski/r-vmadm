@@ -1,0 +1,8 @@
+{
+   "cpu" : 100,
+   "hostname": "test",
+   "uuid" : "fe0b9b05-1f3e-4b11-b0ae-8494bb6ecd53",
+   "ram" : 1024,
+   "disk" : 100,
+   "alias" : "test"
+}
