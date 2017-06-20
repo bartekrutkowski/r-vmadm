@@ -65,13 +65,13 @@ where
         values: &slog::OwnedKVList,
     ) -> result::Result<Self::Ok, Self::Err> {
         let current_level = match self.level {
+            0 => return Ok(None),
             1 => slog::Level::Critical,
             2 => slog::Level::Error,
             3 => slog::Level::Warning,
             4 => slog::Level::Info,
             5 => slog::Level::Debug,
-            6 => slog::Level::Trace,
-            _ => return Ok(None),
+            _ => slog::Level::Trace,
         };
         if record.level().is_at_least(current_level) {
             self.drain.log(record, values).map(Some).map_err(Some)
