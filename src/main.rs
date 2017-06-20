@@ -157,11 +157,12 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let uuid = value_t!(matches, "uuid", String).unwrap();
     debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
-        None => return Err(NotFoundError::bx("Could not find VM")),
-        Some(jdb::Jail { os: Some(_), .. }) => {
+        Err(e) => Err(e),
+        Ok(jdb::Jail { os: Some(_), .. }) => {
             println!("The vm is alredy started");
-            return Err(NotFoundError::bx("VM is already started"));
+            Err(NotFoundError::bx("VM is already started"))
         }
+        Ok(jail) => jails::start(jail),
         _ => Ok(0),
     }
 }
@@ -171,13 +172,13 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let uuid = value_t!(matches, "uuid", String).unwrap();
     debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
-        None => return Err(NotFoundError::bx("Could not find VM")),
-        Some(jdb::Jail { os: None, .. }) => {
+        Err(e) => Err(e),
+        Ok(jdb::Jail { os: None, .. }) => {
             println!("The vm is alredy stopped");
-            return Err(NotFoundError::bx("VM is already stooped"));
+            Err(NotFoundError::bx("VM is already stooped"))
         }
-        Some(_jail) => {
-            jails::stop(& uuid);
+        Ok(_jail) => {
+            jails::stop(&uuid);
             Ok(0)
         }
     }
@@ -208,10 +209,10 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     let mut db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     debug!("Destroying jail {}", uuid);
-    match db.get(uuid.as_str()) {
-        Some(entry) => {
+    let res = match db.get(uuid.as_str()) {
+        Ok(entry) => {
             if entry.os.is_some() {
-                jails::stop(& uuid)?;
+                jails::stop(&uuid)?;
             };
             let origin = zfs::origin(entry.idx.root.as_str());
             match zfs::destroy(entry.idx.root.as_str()) {
@@ -224,10 +225,11 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
                     debug!("zfs snapshot deleted: {}", origin)
                 }
                 Err(e) => warn!("failed to delete origin: {}", e),
-            }
+            };
+            Ok(0)
         }
-        None => return Err(NotFoundError::bx("Could not find VM")),
+        Err(e) => Err(e),
     };
     db.remove(uuid.as_str())?;
-    Ok(0)
+    res
 }

@@ -58,7 +58,8 @@ pub struct IdxEntry {
 pub struct Jail<'a> {
     /// Index refference
     pub idx: &'a IdxEntry,
-    config: Option<&'a JailConfig>,
+    /// Jail configuration
+    config: Option<JailConfig>,
     /// Record from the OS
     pub os: Option<&'a jails::JailOSEntry>
 }
@@ -227,17 +228,19 @@ impl<'a> JDB<'a> {
         Ok(self.index.entries.len())
     }
 
-    /// Fetches a `IdxEntry` from the `JDB`.
-    pub fn get(self: &'a JDB<'a>, uuid: &str) -> Option<Jail> {
+    /// Fetches a `Jail` from the `JDB`.
+    pub fn get(self: &'a JDB<'a>, uuid: &str) -> Result<Jail, Box<Error>> {
         match self.find(uuid) {
-            None => None,
+            None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
+                let entry =  & self.index.entries[index];
+                let config = self.config(entry)?;
                 let jail = Jail{
-                    idx: & self.index.entries[index],
+                    idx: entry,
                     os: self.jails.get(uuid),
-                    config: None
+                    config: Some(config)
                 };
-                Some(jail)
+                Ok(jail)
             },
         }
     }
