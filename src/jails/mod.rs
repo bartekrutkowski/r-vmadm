@@ -23,7 +23,6 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
     debug!("Start jail"; "vm" => uuid);
-    println!("jail {:?}", args);
     let output = Command::new("jail")
         .args(args)
         .output()

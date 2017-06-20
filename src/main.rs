@@ -162,7 +162,10 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             println!("The vm is alredy started");
             Err(NotFoundError::bx("VM is already started"))
         }
-        Ok(jail) => jails::start(& jail)
+        Ok(jail) => {
+            println!("Starting jail {}", jail.idx.uuid);
+            jails::start(&jail)
+        }
     }
 }
 
@@ -177,6 +180,7 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             Err(NotFoundError::bx("VM is already stooped"))
         }
         Ok(_jail) => {
+            println!("Stopping jail {}", uuid);
             jails::stop(&uuid)
         }
     }
@@ -200,6 +204,7 @@ fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     let entry = db.insert(jail)?;
     let snap = zfs::snapshot(dataset.as_str(), entry.uuid.as_str())?;
     zfs::clone(snap.as_str(), entry.root.as_str())?;
+    println!("Created jail {}", entry.uuid);
     Ok(0)
 }
 
@@ -210,6 +215,7 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     let res = match db.get(uuid.as_str()) {
         Ok(entry) => {
             if entry.os.is_some() {
+                println!("Stopping jail {}", uuid);
                 jails::stop(&uuid)?;
             };
             let origin = zfs::origin(entry.idx.root.as_str());
@@ -224,6 +230,7 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
                 }
                 Err(e) => warn!("failed to delete origin: {}", e),
             };
+            println!("Destroyed jail {}", uuid);
             Ok(0)
         }
         Err(e) => Err(e),
