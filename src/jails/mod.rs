@@ -19,7 +19,7 @@ pub struct JailOSEntry {
 
 /// starts a jail
 #[cfg(target_os = "freebsd")]
-pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
+pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
     debug!("Start jail"; "vm" => jail.idx.uuid.clone());
@@ -36,7 +36,7 @@ pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
 
 /// pretend to starts a jail
 #[cfg(not(target_os = "freebsd"))]
-pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
+pub fn start(jail: & Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
     println!("jail {:?}", args);
@@ -44,7 +44,7 @@ pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn create_args(jail: Jail) -> Vec<String> {
+fn create_args(jail: &Jail) -> Vec<String> {
     let uuid = jail.idx.uuid.clone();
     let mut name = String::from("name=");
     name.push_str(uuid.as_str());

@@ -162,7 +162,7 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             println!("The vm is alredy started");
             Err(NotFoundError::bx("VM is already started"))
         }
-        Ok(jail) => jails::start(jail)
+        Ok(jail) => jails::start(& jail)
     }
 }
 
