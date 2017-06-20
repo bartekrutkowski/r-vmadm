@@ -22,8 +22,8 @@ pub struct JailOSEntry {
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
-    debug!("Start jail"; "vm" => jail.idx.uuid.clone());
-    println!("jail {}", args);
+    debug!("Start jail"; "vm" => uuid);
+    println!("jail {:?}", args);
     let output = Command::new("jail")
         .args(args)
         .output()
@@ -49,12 +49,12 @@ fn create_args(jail: &Jail) -> Vec<String> {
     let uuid = jail.idx.uuid.clone();
     let mut name = String::from("name=");
     name.push_str(uuid.as_str());
-    let mut path = String::from("path=");
+    let mut path = String::from("path=/");
     path.push_str(jail.idx.root.as_str());
     path.push_str("/root");
     let mut hostuuid = String::from("host.hostuuid=");
     hostuuid.push_str(uuid.as_str());
-    vec![String::from("-c"), name, path, hostuuid]
+    vec![String::from("-c"), String::from("persist"), name, path, hostuuid]
 }
 
 /// stops a jail
