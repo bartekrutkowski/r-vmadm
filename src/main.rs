@@ -34,6 +34,8 @@ use std::io;
 
 mod zfs;
 
+pub mod jails;
+
 pub mod jdb;
 use jdb::JDB;
 
@@ -81,10 +83,19 @@ where
 
 
 /// Main function
+#[cfg(target_os = "freebsd")]
 fn main() {
     let exit_code = run();
     std::process::exit(exit_code)
 }
+
+#[cfg(not(target_os = "freebsd"))]
+fn main() {
+    println!("Jails are not supported, running in dummy mode");
+    let exit_code = run();
+    std::process::exit(exit_code)
+}
+
 
 fn run() -> i32 {
     use clap::App;
@@ -176,9 +187,9 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
         Some(entry) => {
-            let origin = zfs::origin(entry.root.as_str());
-            match zfs::destroy(entry.root.as_str()) {
-                Ok(_) => debug!("zfs dataset deleted: {}", entry.root),
+            let origin = zfs::origin(entry.idx.root.as_str());
+            match zfs::destroy(entry.idx.root.as_str()) {
+                Ok(_) => debug!("zfs dataset deleted: {}", entry.idx.root),
                 Err(e) => warn!("failed to delete dataset: {}", e),
             };
             match origin {

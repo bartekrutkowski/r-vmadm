@@ -6,9 +6,12 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str;
 use std::cmp::PartialEq;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use serde_json;
+
+use jails;
 
 use errors::{NotFoundError, ConflictError};
 use config::Config;
@@ -50,12 +53,20 @@ pub struct IdxEntry {
     jail_type: String,
 }
 
+
+/// Jail config
+pub struct Jail<'a> {
+    /// Index refference
+    pub idx: &'a IdxEntry,
+    config: Option<&'a JailConfig>,
+    os: Option<&'a jails::JailOSEntry>
+}
+
 impl PartialEq for IdxEntry {
     fn eq(&self, other: &IdxEntry) -> bool {
         self.uuid == other.uuid
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Index {
@@ -68,6 +79,7 @@ struct Index {
 pub struct JDB<'a> {
     config: &'a Config,
     index: Index,
+    jails: HashMap<String, jails::JailOSEntry>
 }
 
 impl<'a> JDB<'a> {
@@ -96,6 +108,7 @@ impl<'a> JDB<'a> {
                 Ok(JDB {
                     index: index,
                     config: config,
+                    jails: jails::list()?,
                 })
             }
             Err(_) => {
@@ -108,6 +121,7 @@ impl<'a> JDB<'a> {
                 let db = JDB {
                     index: index,
                     config: config,
+                    jails: jails::list()?,
                 };
                 db.save()?;
                 Ok(db)
@@ -178,11 +192,12 @@ impl<'a> JDB<'a> {
     /// Prints the jdb database
     pub fn print(self: &'a JDB<'a>) -> Result<i32, Box<Error>> {
         println!(
-            "{:37} {:5} {:8} {:17} {}",
+            "{:37} {:5} {:8} {:17} {:5} {}",
             "UUID",
             "TYPE",
             "RAM",
             "STATE",
+            "ID",
             "ALIAS"
         );
         for e in &(self.index.entries) {
@@ -212,10 +227,17 @@ impl<'a> JDB<'a> {
     }
 
     /// Fetches a `IdxEntry` from the `JDB`.
-    pub fn get(self: &'a JDB<'a>, uuid: &str) -> Option<&IdxEntry> {
+    pub fn get(self: &'a JDB<'a>, uuid: &str) -> Option<Jail> {
         match self.find(uuid) {
             None => None,
-            Some(index) => Some(&self.index.entries[index]),
+            Some(index) => {
+                let jail = Jail{
+                    idx: & self.index.entries[index],
+                    os: self.jails.get(uuid),
+                    config: None
+                };
+                Some(jail)
+            },
         }
     }
     /// Finds an entry for a given uuid
@@ -225,13 +247,22 @@ impl<'a> JDB<'a> {
     /// Gets the config and prints an etry
     fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<i32, Box<Error>> {
         let conf = self.config(entry)?;
+        let id = match self.jails.get(&conf.uuid){
+            Some(jail) => jail.id,
+            _ => 0
+        };
+        let state = match id {
+            0 => &entry.state,
+            _ => "running"
+        };
         println!(
-            "{:37} {:5} {:8} {:17} {}",
+            "{:37} {:5} {:8} {:17} {:5} {}",
             conf.uuid,
             "OS",
             conf.max_physical_memory,
-            entry.state,
-            conf.alias
+            state,
+            id,
+            conf.alias,
         );
         Ok(0)
     }
