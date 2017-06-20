@@ -23,8 +23,9 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
     debug!("Start jail"; "vm" => jail.idx.uuid.clone());
+    println!("jail {}", args);
     let output = Command::new("jail")
-        .args(create_args(jail))
+        .args(args)
         .output()
         .expect("jail -c failed");
     if output.status.success() {

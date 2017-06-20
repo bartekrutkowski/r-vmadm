@@ -155,7 +155,7 @@ fn startup(_conf: &Config) -> Result<i32, Box<Error>> {
 fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Destroying jail {}", uuid);
+    debug!("Starting jail {}", uuid);
     match db.get(uuid.as_str()) {
         Err(e) => Err(e),
         Ok(jdb::Jail { os: Some(_), .. }) => {
