@@ -16,6 +16,29 @@ pub struct JailOSEntry {
     /// os id of the jail
     pub id: u64,
 }
+
+/// stops a jail
+#[cfg(target_os = "freebsd")]
+pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
+    debug!("Dleting jail"; "vm" => uuid);
+    let output = Command::new("jail")
+        .args(&["-r", uuid])
+        .output()
+        .expect("zfs list failed");
+    if output.status.success() {
+        Ok(0)
+    } else {
+        Err(GenericError::bx("Could not delete jail"))
+    }
+}
+
+/// pretend to stop a jail
+#[cfg(not(target_os = "freebsd"))]
+pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
+    debug!("Dleting jail"; "vm" => uuid);
+    Ok(0)
+}
+
 /// reads the zfs datasets in a pool
 #[cfg(target_os = "freebsd")]
 pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {

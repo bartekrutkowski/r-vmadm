@@ -152,12 +152,35 @@ fn startup(_conf: &Config) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-fn start(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    Ok(0)
+fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let mut db = JDB::open(conf)?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("Destroying jail {}", uuid);
+    match db.get(uuid.as_str()) {
+        None => return Err(NotFoundError::bx("Could not find VM")),
+        Some(jdb::Jail { os: Some(_), .. }) => {
+            println!("The vm is alredy started");
+            return Err(NotFoundError::bx("VM is already started"));
+        }
+        _ => Ok(0),
+    }
 }
 
-fn stop(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    Ok(0)
+fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let mut db = JDB::open(conf)?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("Destroying jail {}", uuid);
+    match db.get(uuid.as_str()) {
+        None => return Err(NotFoundError::bx("Could not find VM")),
+        Some(jdb::Jail { os: None, .. }) => {
+            println!("The vm is alredy stopped");
+            return Err(NotFoundError::bx("VM is already stooped"));
+        }
+        Some(_jail) => {
+            jails::stop(& uuid);
+            Ok(0)
+        }
+    }
 }
 
 fn update(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
@@ -187,6 +210,9 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
         Some(entry) => {
+            if entry.os.is_some() {
+                jails::stop(& uuid)?;
+            };
             let origin = zfs::origin(entry.idx.root.as_str());
             match zfs::destroy(entry.idx.root.as_str()) {
                 Ok(_) => debug!("zfs dataset deleted: {}", entry.idx.root),

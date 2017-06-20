@@ -59,7 +59,8 @@ pub struct Jail<'a> {
     /// Index refference
     pub idx: &'a IdxEntry,
     config: Option<&'a JailConfig>,
-    os: Option<&'a jails::JailOSEntry>
+    /// Record from the OS
+    pub os: Option<&'a jails::JailOSEntry>
 }
 
 impl PartialEq for IdxEntry {
