@@ -59,7 +59,7 @@ pub struct Jail<'a> {
     /// Index refference
     pub idx: &'a IdxEntry,
     /// Jail configuration
-    config: Option<JailConfig>,
+    pub config: Option<JailConfig>,
     /// Record from the OS
     pub os: Option<&'a jails::JailOSEntry>
 }

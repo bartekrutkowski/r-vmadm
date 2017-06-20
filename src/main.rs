@@ -153,7 +153,7 @@ fn startup(_conf: &Config) -> Result<i32, Box<Error>> {
 }
 
 fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(conf)?;
+    let db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
@@ -162,13 +162,12 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             println!("The vm is alredy started");
             Err(NotFoundError::bx("VM is already started"))
         }
-        Ok(jail) => jails::start(jail),
-        _ => Ok(0),
+        Ok(jail) => jails::start(jail)
     }
 }
 
 fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(conf)?;
+    let db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
     debug!("Destroying jail {}", uuid);
     match db.get(uuid.as_str()) {
@@ -178,8 +177,7 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             Err(NotFoundError::bx("VM is already stooped"))
         }
         Ok(_jail) => {
-            jails::stop(&uuid);
-            Ok(0)
+            jails::stop(&uuid)
         }
     }
 }

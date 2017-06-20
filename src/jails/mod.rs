@@ -4,7 +4,6 @@ use std::error::Error;
 use errors::GenericError;
 use std::collections::HashMap;
 use jdb::Jail;
-use std::ffi::OsStr;
 // We don't need command on non bsd systems
 #[cfg(target_os = "freebsd")]
 use std::process::Command;
@@ -22,18 +21,12 @@ pub struct JailOSEntry {
 #[cfg(target_os = "freebsd")]
 pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
-    let mut name = String::from("name=");
-    name.push_str(uuid.as_str());
-    let mut path = String::from("path=");
-    path.push_str(jail.idx.root.as_str());
-    path.push_str("/root");
-    let mut hostuuid = String::from("host.hostuuid=");
-    hostuuid.push_str(uuid.as_str());
-    debug!("start jail"; "vm" => uuid);
+    let args = create_args(jail);
+    debug!("Start jail"; "vm" => jail.idx.uuid.clone(), "args" => args);
     let output = Command::new("jail")
-        .args(&["-c", name.as_str(), path.as_str(), hostuuid.as_str()])
+        .args(create_args(jail))
         .output()
-        .expect("zfs list failed");
+        .expect("jail -c failed");
     if output.status.success() {
         Ok(0)
     } else {
@@ -44,21 +37,24 @@ pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
 /// pretend to starts a jail
 #[cfg(not(target_os = "freebsd"))]
 pub fn start(jail: Jail) -> Result<i32, Box<Error>> {
-    debug!("Dleting jail"; "vm" => jail.idx.uuid.clone());
+    let uuid = jail.idx.uuid.clone();
+    let args = create_args(jail);
+    println!("jail {:?}", args);
+    debug!("Start jail"; "vm" => uuid);
     Ok(0)
 }
 
-// fn create_args(jail: Jail) -> &[&str; 4] {
-//     let uuid = jail.idx.uuid.clone();
-//     let mut name = String::from("name=");
-//     name.push_str(uuid.as_str());
-//     let mut path = String::from("path=");
-//     path.push_str(jail.idx.root.as_str());
-//     path.push_str("/root");
-//     let mut hostuuid = String::from("host.hostuuid=");
-//     hostuuid.push_str(uuid.as_str());
-//     &["-c", name.as_str(), path.as_str(), hostuuid.as_str()]
-// }
+fn create_args(jail: Jail) -> Vec<String> {
+    let uuid = jail.idx.uuid.clone();
+    let mut name = String::from("name=");
+    name.push_str(uuid.as_str());
+    let mut path = String::from("path=");
+    path.push_str(jail.idx.root.as_str());
+    path.push_str("/root");
+    let mut hostuuid = String::from("host.hostuuid=");
+    hostuuid.push_str(uuid.as_str());
+    vec![String::from("-c"), name, path, hostuuid]
+}
 
 /// stops a jail
 #[cfg(target_os = "freebsd")]
