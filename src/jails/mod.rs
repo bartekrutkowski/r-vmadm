@@ -20,9 +20,8 @@ pub struct JailOSEntry {
 /// starts a jail
 #[cfg(target_os = "freebsd")]
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
-
     let args = create_args(jail);
-
+    let limits = rctl_limits(jail);
     debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
     let output = Command::new("rctl").args(limits).output().expect(
         "limit failed",
