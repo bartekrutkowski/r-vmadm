@@ -61,7 +61,7 @@ pub struct Jail<'a> {
     /// Jail configuration
     pub config: Option<JailConfig>,
     /// Record from the OS
-    pub os: Option<&'a jails::JailOSEntry>
+    pub os: Option<&'a jails::JailOSEntry>,
 }
 
 impl PartialEq for IdxEntry {
@@ -81,7 +81,7 @@ struct Index {
 pub struct JDB<'a> {
     config: &'a Config,
     index: Index,
-    jails: HashMap<String, jails::JailOSEntry>
+    jails: HashMap<String, jails::JailOSEntry>,
 }
 
 impl<'a> JDB<'a> {
@@ -233,15 +233,15 @@ impl<'a> JDB<'a> {
         match self.find(uuid) {
             None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
-                let entry =  & self.index.entries[index];
+                let entry = &self.index.entries[index];
                 let config = self.config(entry)?;
-                let jail = Jail{
+                let jail = Jail {
                     idx: entry,
                     os: self.jails.get(uuid),
-                    config: Some(config)
+                    config: Some(config),
                 };
                 Ok(jail)
-            },
+            }
         }
     }
     /// Finds an entry for a given uuid
@@ -251,13 +251,13 @@ impl<'a> JDB<'a> {
     /// Gets the config and prints an etry
     fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<i32, Box<Error>> {
         let conf = self.config(entry)?;
-        let id = match self.jails.get(&conf.uuid){
+        let id = match self.jails.get(&conf.uuid) {
             Some(jail) => jail.id,
-            _ => 0
+            _ => 0,
         };
         let state = match id {
             0 => &entry.state,
-            _ => "running"
+            _ => "running",
         };
         println!(
             "{:37} {:5} {:8} {:17} {:5} {}",

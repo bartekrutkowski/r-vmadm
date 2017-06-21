@@ -23,10 +23,9 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
     debug!("Start jail"; "vm" => uuid);
-    let output = Command::new("jail")
-        .args(args)
-        .output()
-        .expect("jail -c failed");
+    let output = Command::new("jail").args(args).output().expect(
+        "jail -c failed",
+    );
     if output.status.success() {
         Ok(0)
     } else {
@@ -36,7 +35,7 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
 
 /// pretend to starts a jail
 #[cfg(not(target_os = "freebsd"))]
-pub fn start(jail: & Jail) -> Result<i32, Box<Error>> {
+pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
     println!("jail {:?}", args);
@@ -53,17 +52,22 @@ fn create_args(jail: &Jail) -> Vec<String> {
     path.push_str("/root");
     let mut hostuuid = String::from("host.hostuuid=");
     hostuuid.push_str(uuid.as_str());
-    vec![String::from("-c"), String::from("persist"), name, path, hostuuid]
+    vec![
+        String::from("-c"),
+        String::from("persist"),
+        name,
+        path,
+        hostuuid,
+    ]
 }
 
 /// stops a jail
 #[cfg(target_os = "freebsd")]
 pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
     debug!("Dleting jail"; "vm" => uuid);
-    let output = Command::new("jail")
-        .args(&["-r", uuid])
-        .output()
-        .expect("zfs list failed");
+    let output = Command::new("jail").args(&["-r", uuid]).output().expect(
+        "zfs list failed",
+    );
     if output.status.success() {
         Ok(0)
     } else {

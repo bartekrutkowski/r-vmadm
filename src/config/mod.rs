@@ -19,7 +19,7 @@ pub struct Settings {
 /// Config object
 #[derive(Debug)]
 pub struct Config {
-    pub settings: Settings
+    pub settings: Settings,
 }
 
 fn default_conf_dir() -> String {
@@ -36,7 +36,7 @@ impl Config {
             "Failed to read config file.",
         );
         let settings: Settings = toml::from_str(contents.as_str())?;
-        Ok(Config{settings: settings})
+        Ok(Config { settings: settings })
     }
     // add code here
 }

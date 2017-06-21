@@ -60,11 +60,14 @@ pub fn origin(dataset: &str) -> Result<String, Box<Error>> {
         let out = String::from_utf8_lossy(&output.stdout).to_string();
         let mut reply = out.split('\t');
         reply.next().ok_or_else(
-        || GenericError::bx("NAME field missing"))?;
+            || GenericError::bx("NAME field missing"),
+        )?;
         reply.next().ok_or_else(
-        || GenericError::bx("PROPERTY field missing"))?;
+            || GenericError::bx("PROPERTY field missing"),
+        )?;
         let origin = reply.next().ok_or_else(
-        || GenericError::bx("PROPERTY field missing"))?;
+            || GenericError::bx("PROPERTY field missing"),
+        )?;
         Ok(String::from(origin))
     } else {
         Err(GenericError::bx("Failed to get dataset"))
