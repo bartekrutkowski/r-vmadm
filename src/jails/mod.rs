@@ -4,8 +4,6 @@ use std::error::Error;
 use errors::GenericError;
 use std::collections::HashMap;
 use jdb::Jail;
-// We don't need command on non bsd systems
-#[cfg(target_os = "freebsd")]
 use std::process::Command;
 
 #[derive(Debug)]
@@ -17,19 +15,28 @@ pub struct JailOSEntry {
     pub id: u64,
 }
 
-/// starts a jail
 #[cfg(target_os = "freebsd")]
+static RCTL: &'static str = "rctl";
+#[cfg(target_os = "freebsd")]
+static JAIL: &'static str = "jail";
+#[cfg(not(target_os = "freebsd"))]
+static RCTL: &'static str = "echo";
+#[cfg(not(target_os = "freebsd"))]
+static JAIL: &'static str = "echo";
+
+/// starts a jail
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let args = create_args(jail);
     let limits = rctl_limits(jail);
     debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
-    let output = Command::new("rctl").args(limits).output().expect(
+    let output = Command::new(RCTL).args(limits).output().expect(
         "limit failed",
     );
+    if !output.status.success() {
+        return Err(GenericError::bx("Could not set jail limits"));
+    }
     debug!("Start jail"; "vm" => jail.idx.uuid.clone());
-    let output = Command::new("jail").args(args).output().expect(
-        "jail failed",
-    );
+    let output = Command::new(JAIL).args(args).output().expect("jail failed");
     if output.status.success() {
         Ok(0)
     } else {
@@ -37,17 +44,6 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     }
 }
 
-/// pretend to starts a jail
-#[cfg(not(target_os = "freebsd"))]
-pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
-    let args = create_args(jail);
-    let limits = rctl_limits(jail);
-    debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
-    println!("jail {:?}", limits);
-    debug!("Start jail"; "vm" => jail.idx.uuid.clone());
-    println!("jail {:?}", args);
-    Ok(0)
-}
 
 fn rctl_limits(jail: &Jail) -> Vec<String> {
     let uuid = jail.config.uuid.clone();
@@ -89,10 +85,9 @@ fn create_args(jail: &Jail) -> Vec<String> {
 }
 
 /// stops a jail
-#[cfg(target_os = "freebsd")]
 pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
     debug!("Dleting jail"; "vm" => uuid);
-    let output = Command::new("jail").args(&["-r", uuid]).output().expect(
+    let output = Command::new(JAIL).args(&["-r", uuid]).output().expect(
         "zfs list failed",
     );
     if output.status.success() {
@@ -100,13 +95,6 @@ pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
     } else {
         Err(GenericError::bx("Could not delete jail"))
     }
-}
-
-/// pretend to stop a jail
-#[cfg(not(target_os = "freebsd"))]
-pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
-    debug!("Dleting jail"; "vm" => uuid);
-    Ok(0)
 }
 
 /// reads the zfs datasets in a pool
