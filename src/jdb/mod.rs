@@ -25,10 +25,15 @@ pub struct JailConfig {
     pub uuid: String,
     /// UUID of the imaage
     pub image_uuid: String,
-    alias: String,
-    hostname: String,
-    max_physical_memory: u64,
-    cpu_cap: u64,
+    /// readable alias for the jail
+    pub alias: String,
+    /// hostname of the jail
+    pub hostname: String,
+    /// max physical memory in MB
+    pub max_physical_memory: u64,
+    /// mac cpu usage 100 = 1 core
+    pub cpu_cap: u64,
+    /// max quota (zfs quota)
     quota: u64,
     #[serde(default = "bfalse")]
     autostart: bool,
@@ -59,7 +64,7 @@ pub struct Jail<'a> {
     /// Index refference
     pub idx: &'a IdxEntry,
     /// Jail configuration
-    pub config: Option<JailConfig>,
+    pub config: JailConfig,
     /// Record from the OS
     pub os: Option<&'a jails::JailOSEntry>,
 }
@@ -238,7 +243,7 @@ impl<'a> JDB<'a> {
                 let jail = Jail {
                     idx: entry,
                     os: self.jails.get(uuid),
-                    config: Some(config),
+                    config: config,
                 };
                 Ok(jail)
             }

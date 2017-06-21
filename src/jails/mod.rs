@@ -20,11 +20,16 @@ pub struct JailOSEntry {
 /// starts a jail
 #[cfg(target_os = "freebsd")]
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
-    let uuid = jail.idx.uuid.clone();
+
     let args = create_args(jail);
-    debug!("Start jail"; "vm" => uuid);
+
+    debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
+    let output = Command::new("rctl").args(args).output().expect(
+        "limit failed",
+    );
+    debug!("Start jail"; "vm" => jail.idx.uuid.clone());
     let output = Command::new("jail").args(args).output().expect(
-        "jail -c failed",
+        "jail failed",
     );
     if output.status.success() {
         Ok(0)
@@ -36,11 +41,31 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
 /// pretend to starts a jail
 #[cfg(not(target_os = "freebsd"))]
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
-    let uuid = jail.idx.uuid.clone();
     let args = create_args(jail);
+    let limits = rctl_limits(jail);
+    debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
+    println!("jail {:?}", limits);
+    debug!("Start jail"; "vm" => jail.idx.uuid.clone());
     println!("jail {:?}", args);
-    debug!("Start jail"; "vm" => uuid);
     Ok(0)
+}
+
+fn rctl_limits(jail: &Jail) -> Vec<String> {
+    let uuid = jail.config.uuid.clone();
+    let mut base = String::from("jail:");
+    base.push_str(uuid.as_str());
+
+    let mut mem = base.clone();
+    mem.push_str(":memoryuse:deny=");
+    mem.push_str(jail.config.max_physical_memory.to_string().as_str());
+    mem.push_str("M");
+
+    let mut pcpu = base.clone();
+    pcpu.push_str(":pcpu:deny=");
+    pcpu.push_str(jail.config.cpu_cap.to_string().as_str());
+
+    vec![String::from("-a"), mem, pcpu]
+
 }
 
 fn create_args(jail: &Jail) -> Vec<String> {
@@ -52,12 +77,15 @@ fn create_args(jail: &Jail) -> Vec<String> {
     path.push_str("/root");
     let mut hostuuid = String::from("host.hostuuid=");
     hostuuid.push_str(uuid.as_str());
+    let mut hostname = String::from("host.hostname=");
+    hostname.push_str(jail.config.hostname.as_str());
     vec![
         String::from("-c"),
         String::from("persist"),
         name,
         path,
         hostuuid,
+        hostname,
     ]
 }
 
