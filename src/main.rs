@@ -30,7 +30,6 @@ extern crate slog_scope;
 extern crate slog_bunyan;
 use slog::Drain;
 
-
 use std::result;
 use std::error::Error;
 use std::io;
@@ -125,11 +124,10 @@ fn run() -> i32 {
 
     // create logger
     let file_drain = slog_bunyan::default(file).map(slog::Fuse);
-    //let file_drain = slog_term::FullFormat::new(decorator).build().fuse();
     let file_drain = slog_async::Async::new(file_drain).build().fuse();
 
-    // let drain = slog::Duplicate::new(file_drain, term_drain).fuse();
-    let drain = file_drain;
+    let drain = slog::Duplicate::new(file_drain, term_drain).fuse();
+
     let root = slog::Logger::root(
         drain,
         o!("req_id" => Uuid::new_v4().hyphenated().to_string()),
