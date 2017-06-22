@@ -10,7 +10,7 @@ serde_derive = "1"
 uuid = { version = "0.5", features = ["serde", "v4"] }
 toml = "0.4"
 clippy = { version = "*", optional = true }
-slog = {version = "2", features = ["max_level_trace", "release_max_level_warn"] }
+slog = {version = "2", features = ["max_level_trace", "release_max_level_debug"] }
 slog-term = "2"
 slog-async = "2"
 slog-scope = "2"
