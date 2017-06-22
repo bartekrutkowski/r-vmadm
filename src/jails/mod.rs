@@ -28,22 +28,22 @@ static JAIL: &'static str = "echo";
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let args = create_args(jail);
     let limits = jail.config.rctl_limits();
-    debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
+    debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone(), "limits" => limits.clone().join(" "));
     let output = Command::new(RCTL).args(limits.clone()).output().expect(
         "limit failed",
     );
     if !output.status.success() {
-        crit!("failed to set resource limits"; "vm" => jail.idx.uuid.clone(), "limits" => limits.clone().join(" "));
+        crit!("failed to set resource limits"; "vm" => jail.idx.uuid.clone());
         return Err(GenericError::bx("Could not set jail limits"));
     }
-    debug!("Start jail"; "vm" => jail.idx.uuid.clone());
+    debug!("Start jail"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
     let output = Command::new(JAIL).args(args.clone()).output().expect(
         "jail failed",
     );
     if output.status.success() {
         Ok(0)
     } else {
-        crit!("Failed to start jail"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
+        crit!("Failed to start jail"; "vm" => jail.idx.uuid.clone());
         Err(GenericError::bx("Could not start jail"))
     }
 }
