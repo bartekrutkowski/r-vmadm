@@ -14,6 +14,7 @@ slog = "2"
 slog-term = "2"
 slog-async = "2"
 slog-scope = "2"
+slog-bunyan = "2"
 
 [dependencies.clap]
 version = "2"

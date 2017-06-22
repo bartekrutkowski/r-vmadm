@@ -27,6 +27,7 @@ extern crate slog_term;
 extern crate slog_async;
 #[macro_use]
 extern crate slog_scope;
+extern crate slog_bunyan;
 use slog::Drain;
 
 
@@ -119,13 +120,14 @@ fn run() -> i32 {
     let file = OpenOptions::new()
         .create(true)
         .write(true)
-        .truncate(true)
+        .append(true)
         .open(log_path)
         .unwrap();
 
     // create logger
-    let decorator = slog_term::PlainSyncDecorator::new(file);
-    let file_drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let file_drain = slog_bunyan::default(file).map(slog::Fuse);
+    //let file_drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let file_drain = slog_async::Async::new(file_drain).build().fuse();
 
     let drain = slog::Duplicate::new(file_drain, term_drain).fuse();
     let root = slog::Logger::root(
