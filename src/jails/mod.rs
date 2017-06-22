@@ -48,7 +48,6 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     }
 }
 
-
 fn create_args(jail: &Jail) -> Vec<String> {
     let uuid = jail.idx.uuid.clone();
     let mut name = String::from("name=");

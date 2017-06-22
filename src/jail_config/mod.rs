@@ -77,6 +77,8 @@ impl JailConfig {
         let mut base = String::from("jail:");
         base.push_str(uuid.as_str());
 
+        res.push(String::from("-a"));
+
         let max_physical_memory = self.max_physical_memory.to_string();
         let mut mem = base.clone();
         mem.push_str(":memoryuse:deny=");
