@@ -33,6 +33,7 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
         "limit failed",
     );
     if !output.status.success() {
+        crit!("failed to set resource limits for jail: {}", limits, vm => jail.idx.uuid.clone());
         return Err(GenericError::bx("Could not set jail limits"));
     }
     debug!("Start jail"; "vm" => jail.idx.uuid.clone());
@@ -40,7 +41,8 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     if output.status.success() {
         Ok(0)
     } else {
-        Err(GenericError::bx("Could not delete jail"))
+        crit!("Failed to start jail with: {}", args, vm => => jail.idx.uuid.clone());
+        Err(GenericError::bx("Could not start jail"))
     }
 }
 
