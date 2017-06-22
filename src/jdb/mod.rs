@@ -7,40 +7,14 @@ use std::path::PathBuf;
 use std::str;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
-use uuid::Uuid;
 
 use serde_json;
 
 use jails;
+use jail_config::JailConfig;
 
-use errors::{NotFoundError, ConflictError};
+use errors::{NotFoundError, ConflictError, GenericError};
 use config::Config;
-
-
-/// Jail configuration values
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JailConfig {
-    /// UUID of the jail
-    #[serde(default = "new_uuid")]
-    pub uuid: String,
-    /// UUID of the imaage
-    pub image_uuid: String,
-    /// readable alias for the jail
-    pub alias: String,
-    /// hostname of the jail
-    pub hostname: String,
-    /// max physical memory in MB
-    pub max_physical_memory: u64,
-    /// mac cpu usage 100 = 1 core
-    pub cpu_cap: u64,
-    /// max quota (zfs quota)
-    quota: u64,
-    autostart: Option<bool>,
-}
-
-fn new_uuid() -> String {
-    Uuid::new_v4().hyphenated().to_string()
-}
 
 /// `JailDB` index entry
 #[derive(Debug, Serialize, Deserialize)]
@@ -53,7 +27,6 @@ pub struct IdxEntry {
     state: String,
     jail_type: String,
 }
-
 
 /// Jail config
 pub struct Jail<'a> {
@@ -215,9 +188,10 @@ impl<'a> JDB<'a> {
         let mut config_path = PathBuf::from(self.config.settings.conf_dir.as_str());
         config_path.push(entry.uuid.clone());
         config_path.set_extension("json");
-        let config_file = File::open(config_path)?;
-        let conf: JailConfig = serde_json::from_reader(config_file)?;
-        Ok(conf)
+        match config_path.to_str() {
+            Some(path) => JailConfig::from_file(path),
+            None => Err(GenericError::bx("could not generate vm config path")),
+        }
     }
     /// Saves the database
     fn save(self: &'a JDB<'a>) -> Result<usize, Box<Error>> {

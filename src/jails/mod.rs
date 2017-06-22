@@ -27,7 +27,7 @@ static JAIL: &'static str = "echo";
 /// starts a jail
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     let args = create_args(jail);
-    let limits = rctl_limits(jail);
+    let limits = jail.config.rctl_limits();
     debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone());
     let output = Command::new(RCTL).args(limits).output().expect(
         "limit failed",
@@ -44,24 +44,6 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     }
 }
 
-
-fn rctl_limits(jail: &Jail) -> Vec<String> {
-    let uuid = jail.config.uuid.clone();
-    let mut base = String::from("jail:");
-    base.push_str(uuid.as_str());
-
-    let mut mem = base.clone();
-    mem.push_str(":memoryuse:deny=");
-    mem.push_str(jail.config.max_physical_memory.to_string().as_str());
-    mem.push_str("M");
-
-    let mut pcpu = base.clone();
-    pcpu.push_str(":pcpu:deny=");
-    pcpu.push_str(jail.config.cpu_cap.to_string().as_str());
-
-    vec![String::from("-a"), mem, pcpu]
-
-}
 
 fn create_args(jail: &Jail) -> Vec<String> {
     let uuid = jail.idx.uuid.clone();

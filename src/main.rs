@@ -39,6 +39,8 @@ mod zfs;
 
 pub mod jails;
 
+pub mod jail_config;
+
 pub mod jdb;
 use jdb::JDB;
 
@@ -216,7 +218,7 @@ fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
 
 fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
-    let jail: jdb::JailConfig = serde_json::from_reader(io::stdin())?;
+    let jail = jail_config::JailConfig::from_reader(io::stdin())?;
     let mut dataset = conf.settings.pool.clone();
     dataset.push('/');
     dataset.push_str(jail.image_uuid.clone().as_str());
