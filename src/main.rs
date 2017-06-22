@@ -163,6 +163,7 @@ fn run() -> i32 {
         Ok(0) => 0,
         Ok(exit_code) => exit_code,
         Err(e) => {
+            println!("command failed: {}", e);
             crit!("error: {}", e);
             1
         }
