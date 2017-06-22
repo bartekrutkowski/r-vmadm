@@ -23,7 +23,7 @@ use uuid::Uuid;
 
 #[macro_use]
 extern crate slog;
-extern crate slog_term;
+// extern crate slog_term;
 extern crate slog_async;
 #[macro_use]
 extern crate slog_scope;
@@ -105,15 +105,15 @@ fn run() -> i32 {
     let mut help_app = App::from_yaml(yaml).version(crate_version!());
     let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
 
-    /// console logger
-    let decorator = slog_term::TermDecorator::new().build();
-    let term_drain = slog_term::FullFormat::new(decorator).build().fuse();
-    let level = matches.occurrences_of("verbose");
-    let term_drain = RuntimeLevelFilter {
-        drain: term_drain,
-        level: level,
-    }.fuse();
-    let term_drain = slog_async::Async::new(term_drain).build().fuse();
+    // /// console logger
+    // let decorator = slog_term::TermDecorator::new().build();
+    // let term_drain = slog_term::FullFormat::new(decorator).build().fuse();
+    // let level = matches.occurrences_of("verbose");
+    // let term_drain = RuntimeLevelFilter {
+    //     drain: term_drain,
+    //     level: level,
+    // }.fuse();
+    // let term_drain = slog_async::Async::new(term_drain).build().fuse();
 
     /// fiel logger
     let log_path = "/var/log/vmadm.log";
@@ -129,7 +129,8 @@ fn run() -> i32 {
     //let file_drain = slog_term::FullFormat::new(decorator).build().fuse();
     let file_drain = slog_async::Async::new(file_drain).build().fuse();
 
-    let drain = slog::Duplicate::new(file_drain, term_drain).fuse();
+    // let drain = slog::Duplicate::new(file_drain, term_drain).fuse();
+    let drain = file_drain;
     let root = slog::Logger::root(
         drain,
         o!("req_id" => Uuid::new_v4().hyphenated().to_string()),
