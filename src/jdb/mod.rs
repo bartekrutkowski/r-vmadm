@@ -35,17 +35,13 @@ pub struct JailConfig {
     pub cpu_cap: u64,
     /// max quota (zfs quota)
     quota: u64,
-    #[serde(default = "bfalse")]
-    autostart: bool,
+    autostart: Option<bool>,
 }
 
 fn new_uuid() -> String {
     Uuid::new_v4().hyphenated().to_string()
 }
 
-fn bfalse() -> bool {
-    false
-}
 /// `JailDB` index entry
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdxEntry {

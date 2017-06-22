@@ -16,8 +16,10 @@ extern crate clap;
 extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
-extern crate uuid;
 extern crate toml;
+
+extern crate uuid;
+use uuid::Uuid;
 
 #[macro_use]
 extern crate slog;
@@ -31,6 +33,7 @@ use slog::Drain;
 use std::result;
 use std::error::Error;
 use std::io;
+use std::fs::OpenOptions;
 
 mod zfs;
 
@@ -81,7 +84,6 @@ where
     }
 }
 
-
 /// Main function
 #[cfg(target_os = "freebsd")]
 fn main() {
@@ -96,23 +98,40 @@ fn main() {
     std::process::exit(exit_code)
 }
 
-
 fn run() -> i32 {
     use clap::App;
     let yaml = load_yaml!("cli.yml");
     let mut help_app = App::from_yaml(yaml).version(crate_version!());
     let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
 
+    /// console logger
     let decorator = slog_term::TermDecorator::new().build();
-    let drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let term_drain = slog_term::FullFormat::new(decorator).build().fuse();
     let level = matches.occurrences_of("verbose");
-    let drain = RuntimeLevelFilter {
-        drain: drain,
+    let term_drain = RuntimeLevelFilter {
+        drain: term_drain,
         level: level,
     }.fuse();
-    let drain = slog_async::Async::new(drain).build().fuse();
+    let term_drain = slog_async::Async::new(term_drain).build().fuse();
 
-    let root = slog::Logger::root(drain, o!());
+    /// fiel logger
+    let log_path = "/var/log/vmadm.log";
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(log_path)
+        .unwrap();
+
+    // create logger
+    let decorator = slog_term::PlainSyncDecorator::new(file);
+    let file_drain = slog_term::FullFormat::new(decorator).build().fuse();
+
+    let drain = slog::Duplicate::new(file_drain, term_drain).fuse();
+    let root = slog::Logger::root(
+        drain,
+        o!("req_id" => Uuid::new_v4().hyphenated().to_string()),
+    );
 
     let _guard = slog_scope::set_global_logger(root);
 
@@ -137,7 +156,7 @@ fn run() -> i32 {
             _ => unreachable!(),
         }
     };
-    crit!("Execution done");
+    debug!("Execution done");
     match r {
         Ok(0) => 0,
         Ok(exit_code) => exit_code,
