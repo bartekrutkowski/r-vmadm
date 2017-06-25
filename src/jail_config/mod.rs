@@ -10,6 +10,20 @@ use uuid::Uuid;
 
 /// Jail configuration values
 #[derive(Debug, Serialize, Deserialize)]
+pub struct NIC {
+    /// Interface name
+    interface: String,
+    #[serde(default = "new_mac")]
+    mac: String,
+    nic_tag: String,
+    ip: String,
+    netmask: String,
+    gateway: String,
+    primary: Option<bool>,
+}
+
+/// Jail configuration values
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JailConfig {
     /// UUID of the jail
     #[serde(default = "new_uuid")]
@@ -37,6 +51,10 @@ pub struct JailConfig {
 
     /// locked memory (memorylocked)
     pub max_locked_memory: Option<u64>,
+
+    /// networks
+    #[serde(default = "empty_nics")]
+    nics: Vec<NIC>,
 
     /// maximum number of porocesses (maxproc)
     #[serde(default = "dflt_max_lwp")]
@@ -127,4 +145,12 @@ fn dflt_max_lwp() -> u64 {
 
 fn new_uuid() -> String {
     Uuid::new_v4().hyphenated().to_string()
+}
+
+fn empty_nics() -> Vec<NIC> {
+    Vec::new()
+}
+
+fn new_mac() -> String {
+    String::from("00:00:00:00:00:00")
 }

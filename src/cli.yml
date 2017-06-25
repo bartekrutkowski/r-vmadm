@@ -40,11 +40,11 @@ subcommands:
                 short: f
                 takes_value: true
                 required: false
-    - destroy:
-        about: destroys a jail
+    - delete:
+        about: deletes a jail
         args:
             - uuid:
-                help: UUID if the jail to destroy
+                help: UUID if the jail to delete
                 index: 1
                 required: true
             - force:
