@@ -42,7 +42,7 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
         return Err(GenericError::bx("Could not set jail limits"));
     }
 
-    let mut devfs = String::from("path=/");
+    let mut devfs = String::from("/");
     devfs.push_str(jail.idx.root.as_str());
     devfs.push_str("/root/dev");
     let devfs_args = vec!["-t", "devfs", "devfs", devfs.as_str()];
