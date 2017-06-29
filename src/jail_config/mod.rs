@@ -50,7 +50,7 @@ impl NIC {
         }
         let reply = String::from_utf8_lossy(&output.stdout);
         let epair = reply.trim();
-        let mut epaira = epair.clone();
+        let mut epaira = String::from(epair);
         epaira.push('a');
 
         let output = Command::new(IFCONFIG)
