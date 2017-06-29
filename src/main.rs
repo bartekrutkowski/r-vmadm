@@ -149,9 +149,10 @@ fn run() -> i32 {
             ("list", Some(list_matches)) => list(&config, list_matches),
             ("create", Some(create_matches)) => create(&config, create_matches),
             ("update", Some(update_matches)) => update(&config, update_matches),
-            ("destroy", Some(destroy_matches)) => destroy(&config, destroy_matches),
+            ("delete", Some(delete_matches)) => delete(&config, delete_matches),
             ("start", Some(start_matches)) => start(&config, start_matches),
             ("stop", Some(stop_matches)) => stop(&config, stop_matches),
+            ("get", Some(get_matches)) => get(&config, get_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
                 Ok(0)
@@ -192,10 +193,24 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     }
 }
 
+fn get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let db = JDB::open(conf)?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("Starting jail {}", uuid);
+    match db.get(uuid.as_str()) {
+        Err(e) => Err(e),
+        Ok(jdb::Jail { config: conf, .. }) => {
+            let j = serde_json::to_string_pretty(&conf)?;
+            println!("{}\n", j);
+            Ok(0)
+        }
+    }
+}
+
 fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Destroying jail {}", uuid);
+    debug!("deleteing jail {}", uuid);
     match db.get(uuid.as_str()) {
         Err(e) => Err(e),
         Ok(jdb::Jail { os: None, .. }) => {
@@ -231,10 +246,10 @@ fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     Ok(0)
 }
 
-fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
     let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Destroying jail {}", uuid);
+    debug!("deleteing jail {}", uuid);
     let res = match db.get(uuid.as_str()) {
         Ok(entry) => {
             if entry.os.is_some() {
@@ -253,7 +268,7 @@ fn destroy(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
                 }
                 Err(e) => warn!("failed to delete origin: {}", e),
             };
-            println!("Destroyed jail {}", uuid);
+            println!("deleteed jail {}", uuid);
             Ok(0)
         }
         Err(e) => Err(e),

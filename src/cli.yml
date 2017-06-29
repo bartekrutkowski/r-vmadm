@@ -58,6 +58,13 @@ subcommands:
                 help: UUID if the jail to start
                 index: 1
                 required: true
+    - get:
+        about: gets a jails configuration
+        args:
+            - uuid:
+                help: UUID if the jail to get
+                index: 1
+                required: true
     - stop:
         about: stops a jail
         args:

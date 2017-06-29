@@ -1,9 +1,19 @@
 {
-   "cpu_cap" : 100,
-   "image_uuid": "ec66180b-f07a-fb57-b9dc-245f97f74e4e",
-   "hostname": "test",
-   "uuid" : "fe0b9b05-1f3e-4b11-b0ae-8494bb6ecd53",
-   "max_physical_memory" : 1024,
-   "quota" : 100,
-   "alias" : "test"
+    "cpu_cap": 100,
+    "image_uuid": "ec66180b-f07a-fb57-b9dc-245f97f74e4e",
+    "hostname": "test",
+    "uuid": "fe0b9b05-1f3e-4b11-b0ae-8494bb6ecd53",
+    "max_physical_memory": 1024,
+    "quota": 100,
+    "alias": "test",
+    "nics": [
+        {
+            "interface": "net0",
+            "nic_tag": "admin",
+            "gateway": "192.168.1.1",
+            "netmask": "255.255.255.0",
+            "ip": "192.168.1.234",
+            "primary": true
+        }
+    ]
 }
