@@ -74,7 +74,7 @@ impl NIC {
         desc.push_str(uuid);
         let output = Command::new(IFCONFIG)
             .args(&[epaira, "description", desc.as_str()])
-            .output()̦
+            .output()
             .expect("failed to add descirption");
         if !output.status.success() {
             return Err(GenericError::bx("could not set description"));
