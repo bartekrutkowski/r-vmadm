@@ -54,7 +54,7 @@ impl NIC {
 
         epair.pop();
         let output = Command::new(IFCONFIG)
-            .args(&["bridge0", "add", epaira])
+            .args(&["bridge0", "addm", epaira])
             .output()
             .expect("failed ifconfig");
 
