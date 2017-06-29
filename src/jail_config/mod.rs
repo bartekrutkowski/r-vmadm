@@ -49,12 +49,12 @@ impl NIC {
             return Err(GenericError::bx("could not create interface"));
         }
         let reply = String::from_utf8_lossy(&output.stdout);
-        let epair = reply.trim();
-        let mut epaira = String::from(epair);
-        epaira.push('a');
+        let epaira = reply.trim();
+        let mut epair = String::from(epaira);
 
+        epair.pop();
         let output = Command::new(IFCONFIG)
-            .args(&["bridge0", "addm", epaira.as_str()])
+            .args(&["bridge0", "add", epaira.as_str()])
             .output()
             .expect("failed ifconfig");
 
@@ -81,7 +81,7 @@ impl NIC {
         }
 
         Ok(IFace {
-            epair: String::from(epair),
+            epair: epair,
             start_script: script,
         })
     }
