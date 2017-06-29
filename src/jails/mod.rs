@@ -5,6 +5,7 @@ use errors::GenericError;
 use std::collections::HashMap;
 use jdb::Jail;
 use std::process::Command;
+use jail_config::{IFace, NIC};
 
 #[derive(Debug)]
 /// Basic information about a ZFS dataset
@@ -26,7 +27,7 @@ static JAIL: &'static str = "echo";
 
 /// starts a jail
 pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
-    let args = create_args(jail);
+    let args = create_args(jail)?;
     let limits = jail.config.rctl_limits();
     debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone(), "limits" => limits.clone().join(" "));
     let output = Command::new(RCTL).args(limits.clone()).output().expect(
@@ -48,7 +49,7 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     }
 }
 
-fn create_args(jail: &Jail) -> Vec<String> {
+fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let mut name = String::from("name=");
     name.push_str(uuid.as_str());
@@ -59,14 +60,32 @@ fn create_args(jail: &Jail) -> Vec<String> {
     hostuuid.push_str(uuid.as_str());
     let mut hostname = String::from("host.hostname=");
     hostname.push_str(jail.config.hostname.as_str());
-    vec![
+    let mut res = vec![
         String::from("-c"),
         String::from("persist"),
         name,
         path,
         hostuuid,
         hostname,
-    ]
+    ];
+    if jail.config.nics.is_empty() {
+        Ok(res)
+    } else {
+        // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
+        res.push(String::from("vnet=new"));
+
+        let iface: IFace = jail.config.nics[0].get_iface(uuid.as_str())?;
+        let mut vnet_iface = String::from("vnet.interface=");
+        vnet_iface.push_str(iface.epair.as_str());
+        vnet_iface.push('b');
+
+        res.push(vnet_iface);
+
+        let mut start = String::from("exec.start=/sbin/ifconfig lo0 127.0.0.1 up; ");
+        start.push_str(iface.start_script.as_str());
+        res.push(start);
+        Ok(res)
+    }
 }
 
 /// stops a jail
@@ -106,7 +125,7 @@ pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {
 /// Reads a dummy jail
 #[cfg(not(target_os = "freebsd"))]
 pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {
-    let reply = "1 fe0b9b05-1f3e-4b11-b0ae-8494bb6ecd53\n";
+    let reply = "1 ge0b9b05-1f3e-4b11-b0ae-8494bb6ecd53\n";
     let mut res = HashMap::new();
 
     for line in reply.split('\n').filter(|x| *x != "") {

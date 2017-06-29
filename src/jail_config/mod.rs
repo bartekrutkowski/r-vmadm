@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
+use std::process::Command;
 
 use serde_json;
 use uuid::Uuid;
@@ -20,6 +21,79 @@ pub struct NIC {
     netmask: String,
     gateway: String,
     primary: Option<bool>,
+}
+
+#[cfg(target_os = "freebsd")]
+static IFCONFIG: &'static str = "ifconfig";
+#[cfg(not(target_os = "freebsd"))]
+static IFCONFIG: &'static str = "echo";
+
+/// Interface after creating
+pub struct IFace {
+    /// epair
+    pub epair: String,
+    /// Startup script for the jail
+    pub start_script: String,
+    // end_script: String,
+}
+impl NIC {
+    /// Creates the related interface
+    #[cfg(target_os = "freebsd")]
+    pub fn get_iface(self: &NIC, uuid: &str) -> Result<IFace, Box<Error>> {
+        let output = Command::new(IFCONFIG)
+            .args(["epair", "create", "up"])
+            .output()
+            .expect("failed ifconfig");
+        if !output.status.success() {
+            return Err(GenericError::bx("could not create interface"));
+        }
+        let reply = String::from_utf8_lossy(&output.stdout);
+        let epair = reply.trim();
+        let mut epaira = epair.clone();
+        epaira.push('a');
+
+        let output = Command::new(IFCONFIG)
+            .args(["epair", "create", "up"])
+            .output()
+            .expect("failed ifconfig");
+
+        let script = format!(
+            "/sbin/ifconfig {epair}b inet {ip} {mask};\
+        /sbin/ifconfig {epair}b name {iface};",
+            epair = epair,
+            ip = self.ip,
+            mask = self.netmask,
+            iface = self.interface
+        );
+        let mut desc = String::from("VNic from jail ");
+        desc.push_str(uuid);
+        let output = Command::new(IFCONFIG)
+            .args([epaira.as_str(), "description", desc.as_str()])
+            .output()
+            .expect("failed to add descirption");
+        Ok(IFace {
+            epair: String::from(epair),
+            start_script: script,
+        })
+    }
+    /// Creates the related interface
+    #[cfg(not(target_os = "freebsd"))]
+    pub fn get_iface(self: &NIC, uuid: &str) -> Result<IFace, Box<Error>> {
+        let epair = "epair0";
+        let script = format!(
+            "/sbin/ifconfig {epair}b inet {ip} {mask};\
+        /sbin/ifconfig {epair}b name {iface};",
+            epair = epair,
+            ip = self.ip,
+            mask = self.netmask,
+            iface = self.interface
+        );
+
+        Ok(IFace {
+            epair: String::from(epair),
+            start_script: script,
+        })
+    }
 }
 
 /// Jail configuration values
@@ -54,7 +128,7 @@ pub struct JailConfig {
 
     /// networks
     #[serde(default = "empty_nics")]
-    nics: Vec<NIC>,
+    pub nics: Vec<NIC>,
 
     /// maximum number of porocesses (maxproc)
     #[serde(default = "dflt_max_lwp")]

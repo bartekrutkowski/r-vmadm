@@ -219,6 +219,7 @@ impl<'a> JDB<'a> {
             }
         }
     }
+
     /// Finds an entry for a given uuid
     fn find(self: &'a JDB<'a>, uuid: &str) -> Option<usize> {
         self.index.entries.iter().position(|x| *x.uuid == *uuid)
