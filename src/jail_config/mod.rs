@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::Read;
 #[cfg(target_os = "freebsd")]
 use std::process::Command;
+use errors::GenericError;
 
 use serde_json;
 use uuid::Uuid;
@@ -40,7 +41,7 @@ impl NIC {
     #[cfg(target_os = "freebsd")]
     pub fn get_iface(self: &NIC, uuid: &str) -> Result<IFace, Box<Error>> {
         let output = Command::new(IFCONFIG)
-            .args(["epair", "create", "up"])
+            .args(&["epair", "create", "up"])
             .output()
             .expect("failed ifconfig");
         if !output.status.success() {
@@ -52,7 +53,7 @@ impl NIC {
         epaira.push('a');
 
         let output = Command::new(IFCONFIG)
-            .args(["epair", "create", "up"])
+            .args(&["epair", "create", "up"])
             .output()
             .expect("failed ifconfig");
 
@@ -67,7 +68,7 @@ impl NIC {
         let mut desc = String::from("VNic from jail ");
         desc.push_str(uuid);
         let output = Command::new(IFCONFIG)
-            .args([epaira.as_str(), "description", desc.as_str()])
+            .args(&[epaira.as_str(), "description", desc.as_str()])
             .output()
             .expect("failed to add descirption");
         Ok(IFace {
