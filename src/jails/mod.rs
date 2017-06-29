@@ -68,10 +68,11 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
         hostuuid,
         hostname,
     ];
-    let mut exec_start = String::from("exec.start=");
+    let mut exec_start = String::from("exec.start=/sbin/ifconfig lo0 127.0.0.1 up; ");
     // let mut exec_stop = String::from("exec.stop=");
     let mut exec_poststop = String::from("exec.poststop=");
     res.push(String::from("vnet=new"));
+
     for nic in jail.config.nics.iter() {
         // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
         let iface: IFace = nic.get_iface(uuid.as_str())?;
@@ -81,16 +82,13 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
 
         res.push(vnet_iface);
 
-        exec_start.push_str("/sbin/ifconfig lo0 127.0.0.1 up; ");
         exec_start.push_str(iface.start_script.as_str());
         exec_poststop.push_str(iface.poststop_script.as_str());
     }
+    res.push(exec_start);
     if !jail.config.nics.is_empty() {
-        exec_start.push('"');
-        res.push(exec_start);
         // exec_stop.push('"');
         // res.push(exec_stop);
-        exec_poststop.push('"');
         res.push(exec_poststop);
     };
     Ok(res)
