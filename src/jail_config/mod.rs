@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
+#[cfg(target_os = "freebsd")]
 use std::process::Command;
 
 use serde_json;
@@ -25,8 +26,6 @@ pub struct NIC {
 
 #[cfg(target_os = "freebsd")]
 static IFCONFIG: &'static str = "ifconfig";
-#[cfg(not(target_os = "freebsd"))]
-static IFCONFIG: &'static str = "echo";
 
 /// Interface after creating
 pub struct IFace {
@@ -78,7 +77,7 @@ impl NIC {
     }
     /// Creates the related interface
     #[cfg(not(target_os = "freebsd"))]
-    pub fn get_iface(self: &NIC, uuid: &str) -> Result<IFace, Box<Error>> {
+    pub fn get_iface(self: &NIC, _uuid: &str) -> Result<IFace, Box<Error>> {
         let epair = "epair0";
         let script = format!(
             "/sbin/ifconfig {epair}b inet {ip} {mask};\

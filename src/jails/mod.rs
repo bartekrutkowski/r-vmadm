@@ -5,7 +5,7 @@ use errors::GenericError;
 use std::collections::HashMap;
 use jdb::Jail;
 use std::process::Command;
-use jail_config::{IFace, NIC};
+use jail_config::IFace;
 
 #[derive(Debug)]
 /// Basic information about a ZFS dataset
