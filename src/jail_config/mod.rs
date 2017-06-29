@@ -90,7 +90,7 @@ impl NIC {
         if !output.status.success() {
             return Err(GenericError::bx("could not set description"));
         }
-        let mut poststop = format!("{} {} destroy;", IFCONFIG, epaira);
+        let poststop = format!("{} {} destroy;", IFCONFIG, epaira);
         Ok(IFace {
             epair: epair,
             start_script: script,

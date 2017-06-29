@@ -68,9 +68,9 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
         hostuuid,
         hostname,
     ];
-    let mut exec_start = String::from("exec.start=/usr/bin/true; ");
-    let mut exec_stop = String::from("exec.stop=/usr/bin/true; ");
-    let mut exec_poststop = String::from("exec.poststop=/usr/bin/true; ");
+    let mut exec_start = String::from("exec.start=\"/usr/bin/true; ");
+    let mut exec_stop = String::from("exec.stop=\"/usr/bin/true; ");
+    let mut exec_poststop = String::from("exec.poststop=\"/usr/bin/true; ");
     res.push(String::from("vnet=new"));
     for nic in jail.config.nics.iter() {
         // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
@@ -85,8 +85,11 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
         exec_start.push_str(iface.start_script.as_str());
         exec_poststop.push_str(iface.poststop_script.as_str());
     }
+    exec_start.push('"');
     res.push(exec_start);
+    exec_stop.push('"');
     res.push(exec_stop);
+    exec_poststop.push('"');
     res.push(exec_poststop);
     Ok(res)
 
