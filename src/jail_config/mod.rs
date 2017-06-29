@@ -69,7 +69,7 @@ impl NIC {
         let mut desc = String::from("VNic from jail ");
         desc.push_str(uuid);
         let output = Command::new(IFCONFIG)
-            .args(&[epaira, "description", desc.as_str()])
+            .args(&[epaira.as_str(), "description", desc.as_str()])
             .output()
             .expect("failed to add descirption");
         Ok(IFace {
