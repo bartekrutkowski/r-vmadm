@@ -54,7 +54,7 @@ impl NIC {
 
         epair.pop();
         let output = Command::new(IFCONFIG)
-            .args(&["bridge0", "add", epaira.as_str()])
+            .args(&["bridge0", "add", epaira])
             .output()
             .expect("failed ifconfig");
 
@@ -73,8 +73,8 @@ impl NIC {
         let mut desc = String::from("VNic from jail ");
         desc.push_str(uuid);
         let output = Command::new(IFCONFIG)
-            .args(&[epaira.as_str(), "description", desc.as_str()])
-            .output()
+            .args(&[epaira, "description", desc.as_str()])
+            .output()̦
             .expect("failed to add descirption");
         if !output.status.success() {
             return Err(GenericError::bx("could not set description"));
