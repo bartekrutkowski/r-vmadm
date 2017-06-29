@@ -68,24 +68,28 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
         hostuuid,
         hostname,
     ];
-    if jail.config.nics.is_empty() {
-        Ok(res)
-    } else {
+    let mut exec_start = String::from("exec.start=/usr/bin/true; ");
+    let mut exec_stop = String::from("exec.stop=/usr/bin/true; ");
+    let mut exec_poststop = String::from("exec.poststop=/usr/bin/true; ");
+    res.push(String::from("vnet=new"));
+    for nic in jail.config.nics.iter() {
         // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
-        res.push(String::from("vnet=new"));
-
-        let iface: IFace = jail.config.nics[0].get_iface(uuid.as_str())?;
+        let iface: IFace = nic.get_iface(uuid.as_str())?;
         let mut vnet_iface = String::from("vnet.interface=");
         vnet_iface.push_str(iface.epair.as_str());
         vnet_iface.push('b');
 
         res.push(vnet_iface);
 
-        let mut start = String::from("exec.start=/sbin/ifconfig lo0 127.0.0.1 up; ");
-        start.push_str(iface.start_script.as_str());
-        res.push(start);
-        Ok(res)
+        exec_start.push_str("/sbin/ifconfig lo0 127.0.0.1 up; ");
+        exec_start.push_str(iface.start_script.as_str());
+        exec_poststop.push_str(iface.poststop_script.as_str());
     }
+    res.push(exec_start);
+    res.push(exec_stop);
+    res.push(exec_poststop);
+    Ok(res)
+
 }
 
 /// stops a jail

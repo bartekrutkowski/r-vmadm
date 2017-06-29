@@ -23,11 +23,16 @@ pub struct NIC {
     ip: String,
     netmask: String,
     gateway: String,
-    primary: Option<bool>,
+    #[serde(default = "dflt_false")]
+    primary: bool,
+}
+
+fn dflt_false() -> bool {
+    false
 }
 
 #[cfg(target_os = "freebsd")]
-static IFCONFIG: &'static str = "ifconfig";
+static IFCONFIG: &'static str = "/sbin/ifconfig";
 
 /// Interface after creating
 pub struct IFace {
@@ -36,6 +41,8 @@ pub struct IFace {
     /// Startup script for the jail
     pub start_script: String,
     // end_script: String,
+    /// post stop script
+    pub poststop_script: String,
 }
 impl NIC {
     /// Creates the related interface
@@ -62,14 +69,18 @@ impl NIC {
             return Err(GenericError::bx("could not add epair to bridge"));
         }
 
-        let script = format!(
-            "/sbin/ifconfig {epair}b inet {ip} {mask};\
-        /sbin/ifconfig {epair}b name {iface};",
+        let mut script = format!(
+            "/sbin/ifconfig {epair}b inet {ip} {mask}; \
+        /sbin/ifconfig {epair}b name {iface}; ",
             epair = epair,
             ip = self.ip,
             mask = self.netmask,
             iface = self.interface
         );
+        if (self.primary) {
+            let route = format!("/sbin/route add default -gateway {}; ", self.gateway);
+            script.push_str(route.as_str())
+        }
         let mut desc = String::from("VNic from jail ");
         desc.push_str(uuid);
         let output = Command::new(IFCONFIG)
@@ -79,10 +90,11 @@ impl NIC {
         if !output.status.success() {
             return Err(GenericError::bx("could not set description"));
         }
-
+        let mut poststop = format!("{} {} destroy;", IFCONFIG, epaira);
         Ok(IFace {
             epair: epair,
             start_script: script,
+            poststop_script: poststop,
         })
     }
     /// Creates the related interface
@@ -101,6 +113,7 @@ impl NIC {
         Ok(IFace {
             epair: String::from(epair),
             start_script: script,
+            poststop_script: String::from(""),
         })
     }
 }
