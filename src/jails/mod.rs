@@ -17,9 +17,13 @@ pub struct JailOSEntry {
 }
 
 #[cfg(target_os = "freebsd")]
+static MOUNT: &'static str = "mount";
+#[cfg(target_os = "freebsd")]
 static RCTL: &'static str = "rctl";
 #[cfg(target_os = "freebsd")]
 static JAIL: &'static str = "jail";
+#[cfg(not(target_os = "freebsd"))]
+static MOUNT: &'static str = "echo";
 #[cfg(not(target_os = "freebsd"))]
 static RCTL: &'static str = "echo";
 #[cfg(not(target_os = "freebsd"))]
@@ -37,6 +41,17 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
         crit!("failed to set resource limits"; "vm" => jail.idx.uuid.clone());
         return Err(GenericError::bx("Could not set jail limits"));
     }
+
+    let mut devfs = String::from("path=/");
+    devfs.push_str(jail.idx.root.as_str());
+    devfs.push_str("/root/dev");
+    let devfs_args = vec!["-t", "devfs", "devfs", devfs.as_str()];
+
+    debug!("mounting devfs"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    let _output = Command::new(MOUNT).args(devfs_args).output().expect(
+        "failed to mount devfs",
+    );
+
     debug!("Start jail"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
     let output = Command::new(JAIL).args(args.clone()).output().expect(
         "jail failed",
@@ -71,8 +86,6 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
 
     // Basic stuff I don't know what it does
     res.push(String::from("devfs_ruleset=4"));
-    res.push(String::from("ip4=disable"));
-    res.push(String::from("ip6=disable"));
     res.push(String::from("securelevel=2"));
     res.push(String::from("sysvmsg=new"));
     res.push(String::from("sysvsem=new"));
