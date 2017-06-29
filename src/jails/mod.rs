@@ -79,6 +79,7 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
     res.push(String::from("sysvshm=new"));
 
     // let mut exec_stop = String::from("exec.stop=");
+    let mut exec_start = String::from("exec.start=");
     let mut exec_poststop = String::from("exec.poststop=");
     res.push(String::from("vnet=new"));
 
