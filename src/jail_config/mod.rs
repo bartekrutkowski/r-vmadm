@@ -77,7 +77,7 @@ impl NIC {
             mask = self.netmask,
             iface = self.interface
         );
-        if (self.primary) {
+        if self.primary {
             let route = format!("/sbin/route add default -gateway {}; ", self.gateway);
             script.push_str(route.as_str())
         }
