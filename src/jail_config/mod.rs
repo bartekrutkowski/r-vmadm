@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::Read;
 #[cfg(target_os = "freebsd")]
 use std::process::Command;
+#[cfg(target_os = "freebsd")]
 use errors::GenericError;
 
 use serde_json;
