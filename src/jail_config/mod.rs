@@ -54,9 +54,13 @@ impl NIC {
         epaira.push('a');
 
         let output = Command::new(IFCONFIG)
-            .args(&["epair", "create", "up"])
+            .args(&["bridge0", "addm", epaira.as_str()])
             .output()
             .expect("failed ifconfig");
+
+        if !output.status.success() {
+            return Err(GenericError::bx("could not add epair to bridge"));
+        }
 
         let script = format!(
             "/sbin/ifconfig {epair}b inet {ip} {mask};\
@@ -72,6 +76,10 @@ impl NIC {
             .args(&[epaira.as_str(), "description", desc.as_str()])
             .output()
             .expect("failed to add descirption");
+        if !output.status.success() {
+            return Err(GenericError::bx("could not set description"));
+        }
+
         Ok(IFace {
             epair: String::from(epair),
             start_script: script,
