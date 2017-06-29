@@ -68,7 +68,16 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
         hostuuid,
         hostname,
     ];
-    let mut exec_start = String::from("exec.start=/sbin/ifconfig lo0 127.0.0.1 up; ");
+
+    // Basic stuff I don't know what it does
+    res.push(String::from("devfs_ruleset=4"));
+    res.push(String::from("ip4=disable"));
+    res.push(String::from("ip6=disable"));
+    res.push(String::from("securelevel=2"));
+    res.push(String::from("sysvmsg=new"));
+    res.push(String::from("sysvsem=new"));
+    res.push(String::from("sysvshm=new"));
+
     // let mut exec_stop = String::from("exec.stop=");
     let mut exec_poststop = String::from("exec.poststop=");
     res.push(String::from("vnet=new"));
