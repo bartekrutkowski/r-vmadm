@@ -17,6 +17,8 @@ pub struct JailOSEntry {
 }
 
 #[cfg(target_os = "freebsd")]
+static UMOUNT: &'static str = "umount";
+#[cfg(target_os = "freebsd")]
 static MOUNT: &'static str = "mount";
 #[cfg(target_os = "freebsd")]
 static RCTL: &'static str = "rctl";
@@ -24,6 +26,8 @@ static RCTL: &'static str = "rctl";
 static JAIL: &'static str = "jail";
 #[cfg(not(target_os = "freebsd"))]
 static MOUNT: &'static str = "echo";
+#[cfg(not(target_os = "freebsd"))]
+static UMOUNT: &'static str = "echo";
 #[cfg(not(target_os = "freebsd"))]
 static RCTL: &'static str = "echo";
 #[cfg(not(target_os = "freebsd"))]
@@ -119,17 +123,27 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
 }
 
 /// stops a jail
-pub fn stop(uuid: &str) -> Result<i32, Box<Error>> {
-    debug!("Dleting jail"; "vm" => uuid);
-    let output = Command::new(JAIL).args(&["-r", uuid]).output().expect(
-        "zfs list failed",
-    );
-    if output.status.success() {
-        Ok(0)
-    } else {
-        crit!("Failed to stop jail"; "vm" => uuid.clone());
-        Err(GenericError::bx("Could not stop jail"))
+pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
+    debug!("Dleting jail"; "vm" => jail.idx.uuid.clone());
+    let output = Command::new(JAIL)
+        .args(&["-r", jail.idx.uuid.clone().as_str()])
+        .output()
+        .expect("zfs list failed");
+    if !output.status.success() {
+        crit!("Failed to stop jail"; "vm" => jail.idx.uuid.clone());
+        return Err(GenericError::bx("Could not stop jail"));
     }
+
+    let mut devfs = String::from("/");
+    devfs.push_str(jail.idx.root.as_str());
+    devfs.push_str("/root/dev");
+    let devfs_args = vec![devfs.as_str()];
+
+    debug!("un mounting devfs"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    let _output = Command::new(UMOUNT).args(devfs_args).output().expect(
+        "failed to mount devfs",
+    );
+    Ok(0)
 }
 
 /// reads the zfs datasets in a pool

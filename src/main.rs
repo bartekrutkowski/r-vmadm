@@ -217,9 +217,9 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             println!("The vm is alredy stopped");
             Err(NotFoundError::bx("VM is already stooped"))
         }
-        Ok(_jail) => {
+        Ok(jail) => {
             println!("Stopping jail {}", uuid);
-            jails::stop(&uuid)
+            jails::stop(&jail)
         }
     }
 }
@@ -251,14 +251,14 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     let uuid = value_t!(matches, "uuid", String).unwrap();
     debug!("deleteing jail {}", uuid);
     let res = match db.get(uuid.as_str()) {
-        Ok(entry) => {
-            if entry.os.is_some() {
+        Ok(jail) => {
+            if jail.os.is_some() {
                 println!("Stopping jail {}", uuid);
-                jails::stop(&uuid)?;
+                jails::stop(&jail)?;
             };
-            let origin = zfs::origin(entry.idx.root.as_str());
-            match zfs::destroy(entry.idx.root.as_str()) {
-                Ok(_) => debug!("zfs dataset deleted: {}", entry.idx.root),
+            let origin = zfs::origin(jail.idx.root.as_str());
+            match zfs::destroy(jail.idx.root.as_str()) {
+                Ok(_) => debug!("zfs dataset deleted: {}", jail.idx.root),
                 Err(e) => warn!("failed to delete dataset: {}", e),
             };
             match origin {
