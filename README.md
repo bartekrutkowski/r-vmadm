@@ -1,15 +1,14 @@
 # Introduction
 
-The goal of this is to provide a fast, efficient utility to manage BSD jails. The CLI is designed to mirror SmartOS's vmadm and other ideas are borrowed from other Solaris zone utilities where applicable.
+The goal of this is to provide a fast, efficient utility to manage BSD jails. The CLI is designed to mirror SmartOS's vmadm, and we borrow ideas from other Solaris zone utilities where applicable.
 
 ## Design
 
-Jails are described as JSON files. These files are compatible with vmadm's files but represent only a subset of the total options.
+vmadm describes jails as JSON files. These files are compatible with vmadm's files but represent only a subset of the total options.
 
-Data lives in `/etc/jails`, being an index file and description file per zone. This mostly mimics the way zomeadm works on Solaris, but replaces xml+plaintext with json.
+Data lives in `/etc/jails`, being an index file and description file per zone. We do this to mimic the way zomeadm works on Solaris but replaces xml+plaintext with JSON.
 
 Images are ZFS datasets that get cloned for a new jail, both living under a given prefix (that can be defined).
-
 ## installation
 
 1. Install rust (https://rustup.rs/)
