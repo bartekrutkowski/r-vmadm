@@ -160,6 +160,7 @@ fn run() -> i32 {
             ("update", Some(update_matches)) => update(&config, update_matches),
             ("delete", Some(delete_matches)) => delete(&config, delete_matches),
             ("start", Some(start_matches)) => start(&config, start_matches),
+            ("reboot", Some(reboot_matches)) => reboot(&config, reboot_matches),
             ("stop", Some(stop_matches)) => stop(&config, stop_matches),
             ("get", Some(get_matches)) => get(&config, get_matches),
             ("console", Some(console_matches)) => console(&config, console_matches),
@@ -200,6 +201,23 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
         Ok(jail) => {
             println!("Starting jail {}", jail.idx.uuid);
             jails::start(&jail)
+        }
+    }
+}
+
+fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let db = JDB::open(conf)?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("deleteing jail {}", uuid);
+    match db.get(uuid.as_str()) {
+        Err(e) => Err(e),
+        Ok(jdb::Jail { os: None, .. }) => {
+            println!("The vm is not running");
+            Err(NotFoundError::bx("The vm is not running"))
+        }
+        Ok(jail) => {
+            println!("Rebooting jail {}", uuid);
+            jails::reboot(&jail)
         }
     }
 }
