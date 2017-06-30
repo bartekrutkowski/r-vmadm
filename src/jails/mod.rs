@@ -146,19 +146,6 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-/// reboots a jail
-pub fn reboot(jail: &Jail) -> Result<i32, Box<Error>> {
-    debug!("Dleting jail"; "vm" => jail.idx.uuid.clone());
-    let output = Command::new(JAIL)
-        .args(&["-rc", jail.idx.uuid.clone().as_str()])
-        .output()
-        .expect("zfs list failed");
-    if !output.status.success() {
-        crit!("Failed to restart jail"; "vm" => jail.idx.uuid.clone());
-        return Err(GenericError::bx("Could not restart jail"));
-    }
-    Ok(0)
-}
 /// reads the zfs datasets in a pool
 #[cfg(target_os = "freebsd")]
 pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {

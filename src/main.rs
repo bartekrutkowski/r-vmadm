@@ -217,7 +217,8 @@ fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
         }
         Ok(jail) => {
             println!("Rebooting jail {}", uuid);
-            jails::reboot(&jail)
+            jails::stop(&jail)?;
+            jails::start(&jail)
         }
     }
 }
