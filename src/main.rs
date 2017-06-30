@@ -165,6 +165,7 @@ fn run() -> i32 {
             ("console", Some(console_matches)) => console(&config, console_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
+                println!();
                 Ok(0)
             }
             _ => unreachable!(),
