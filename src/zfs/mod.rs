@@ -117,9 +117,10 @@ pub fn clone(snapshot: &str, dataset: &str) -> Result<i32, Box<Error>> {
         Err(GenericError::bx("Failed to clone dataset"))
     }
 }
+
 /// destroy the zfs datasets in a pool
 pub fn destroy(dataset: &str) -> Result<i32, Box<Error>> {
-    debug!("Destroying ZFS dataset"; "dataset" => dataset);
+    debug!("deleteing ZFS dataset"; "dataset" => dataset);
     let output = Command::new("zfs")
         .args(&["destroy", dataset])
         .output()

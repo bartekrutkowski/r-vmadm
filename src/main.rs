@@ -36,6 +36,8 @@ use std::error::Error;
 use std::io;
 use std::fs::OpenOptions;
 
+use std::process::Command;
+
 mod zfs;
 
 pub mod jails;
@@ -50,6 +52,13 @@ use config::Config;
 
 pub mod errors;
 use errors::{GenericError, NotFoundError};
+
+
+#[cfg(target_os = "freebsd")]
+static JEXEC: &'static str = "jexec";
+#[cfg(not(target_os = "freebsd"))]
+static JEXEC: &'static str = "echo";
+
 
 /// Custom Drain logic
 struct RuntimeLevelFilter<D> {
@@ -153,6 +162,7 @@ fn run() -> i32 {
             ("start", Some(start_matches)) => start(&config, start_matches),
             ("stop", Some(stop_matches)) => stop(&config, stop_matches),
             ("get", Some(get_matches)) => get(&config, get_matches),
+            ("console", Some(console_matches)) => console(&config, console_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
                 Ok(0)
@@ -203,6 +213,31 @@ fn get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
             let j = serde_json::to_string_pretty(&conf)?;
             println!("{}\n", j);
             Ok(0)
+        }
+    }
+}
+
+fn console(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let db = JDB::open(conf)?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("Starting jail {}", uuid);
+    match db.get(uuid.as_str()) {
+        Err(e) => Err(e),
+        Ok(jdb::Jail { os: None, .. }) => {
+            println!("The vm is not running");
+            Err(NotFoundError::bx("VM is not running"))
+        }
+        Ok(jdb::Jail { os: Some(jid), .. }) => {
+            let mut child = Command::new(JEXEC)
+                .args(&[jid.id.to_string().as_str(), "/bin/csh"])
+                .spawn()
+                .expect("failed to execute jsj");
+            let ecode = child.wait().expect("failed to wait on child");
+            if ecode.success() {
+                Ok(0)
+            } else {
+                Err(GenericError::bx("Failed to execute jail console"))
+            }
         }
     }
 }
