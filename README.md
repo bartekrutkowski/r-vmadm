@@ -20,6 +20,6 @@ Images are ZFS datasets that get cloned for a new jail, both living under a give
 7. Create the jails folder: `mkdir /etc/jails`
 8. Create the main config file: `echo 'pool = "zroot/jails"' > /etc/vmadm.toml`
 9. Create a zfs dataset: `zfs create zroot/jails `
-10. Download a/the datase `curl -O curl -O https://s3.amazonaws.com/datasets.project-fifo.net/freebsd/e022d0f8-5630-11e7-b660-9b2d243d4404.xz`
-11. Extract the dataset `zxcat e022d0f8-5630-11e7-b660-9b2d243d4404.xz | zfs receive zroot/jails/e022d0f8-5630-11e7-b660-9b2d243d4404`
+10. Download a/the datase `curl -O https://s3.amazonaws.com/datasets.project-fifo.net/freebsd/e022d0f8-5630-11e7-b660-9b2d243d4404.xz`
+11. Extract the dataset `xzcat e022d0f8-5630-11e7-b660-9b2d243d4404.xz | zfs receive zroot/jails/e022d0f8-5630-11e7-b660-9b2d243d4404`
 12. Create a jail: cat example.json | vmadm create
