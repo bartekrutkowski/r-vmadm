@@ -90,6 +90,7 @@ impl NIC {
         if !output.status.success() {
             return Err(GenericError::bx("could not set description"));
         }
+        script.push_str("sh /etc/rc; ");
         let poststop = format!("{} {} destroy;", IFCONFIG, epaira);
         Ok(IFace {
             epair: epair,
