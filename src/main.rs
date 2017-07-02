@@ -323,7 +323,7 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
                 }
                 Err(e) => warn!("failed to delete origin: {}", e),
             };
-            println!("deleteed jail {}", uuid);
+            println!("deleted jail {}", uuid);
             Ok(0)
         }
         Err(e) => Err(e),
