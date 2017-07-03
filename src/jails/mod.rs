@@ -112,12 +112,13 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
         exec_start.push_str(iface.start_script.as_str());
         exec_poststop.push_str(iface.poststop_script.as_str());
     }
-    res.push(exec_start);
     if !jail.config.nics.is_empty() {
         // exec_stop.push('"');
         // res.push(exec_stop);
         res.push(exec_poststop);
+        exec_start.push_str("/sbin/ifconfig lo0 127.0.0.1 up; ");
     };
+    res.push(exec_start);
     Ok(res)
 
 }
