@@ -11,6 +11,7 @@
 
 #[macro_use]
 extern crate clap;
+extern crate aud;
 
 #[macro_use]
 extern crate serde_derive;
@@ -36,6 +37,8 @@ use std::error::Error;
 use std::io;
 use std::fs::OpenOptions;
 
+use aud::{Failure, Adventure, Saga};
+
 use std::process::Command;
 
 mod zfs;
@@ -43,9 +46,10 @@ mod zfs;
 pub mod jails;
 
 pub mod jail_config;
+use jail_config::JailConfig;
 
 pub mod jdb;
-use jdb::JDB;
+use jdb::{JDB, IdxEntry};
 
 mod config;
 use config::Config;
@@ -288,17 +292,136 @@ fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     db.print()
 }
 
+
+
+
+
 fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let mut db = JDB::open(conf)?;
     let jail = jail_config::JailConfig::from_reader(io::stdin())?;
     let mut dataset = conf.settings.pool.clone();
     dataset.push('/');
     dataset.push_str(jail.image_uuid.clone().as_str());
-    let entry = db.insert(jail)?;
-    let snap = zfs::snapshot(dataset.as_str(), entry.uuid.as_str())?;
-    zfs::clone(snap.as_str(), entry.root.as_str())?;
-    println!("Created jail {}", entry.uuid);
-    Ok(0)
+
+    struct CreateState<'a> {
+        conf: &'a Config,
+        uuid: String,
+        dataset: String,
+        config: JailConfig,
+        entry: Option<IdxEntry>,
+        snapshot: Option<String>,
+        root: Option<String>,
+    }
+
+    let state = CreateState {
+        conf,
+        uuid: jail.image_uuid.clone(),
+        dataset,
+        config: jail,
+        entry: None,
+        snapshot: None,
+        root: None,
+    };
+    fn insert_up(state: CreateState) -> Result<CreateState, Failure<CreateState>> {
+        match JDB::open(state.conf) {
+            Ok(mut db) => {
+                match db.insert(state.config.clone()) {
+                    Ok(entry) => Ok(CreateState {
+                        conf: state.conf,
+                        uuid: state.uuid,
+                        dataset: state.dataset,
+                        config: state.config,
+                        entry: Some(entry),
+                        snapshot: state.snapshot,
+                        root: state.root,
+                    }),
+                    Err(error) => Err(Failure::new(state, error)),
+                }
+            }
+            Err(error) => Err(Failure::new(state, error)),
+        }
+    };
+    fn insert_down(state: CreateState) -> CreateState {
+        crit!("Rolling back insert");
+        match JDB::open(state.conf) {
+            Ok(mut db) => {
+                let _ = db.remove(state.uuid.as_str());
+            }
+            Err(_error) => (),
+        };
+        state
+    };
+
+    fn snap_up(state: CreateState) -> Result<CreateState, Failure<CreateState>> {
+        match zfs::snapshot(state.dataset.as_str(), state.uuid.as_str()) {
+            Ok(snap) => Ok(CreateState {
+                conf: state.conf,
+                uuid: state.uuid,
+                dataset: state.dataset,
+                config: state.config,
+                entry: state.entry,
+                snapshot: Some(snap),
+                root: state.root,
+            }),
+            Err(error) => Err(Failure::new(state, error)),
+        }
+    }
+    fn snap_down(state: CreateState) -> CreateState {
+        crit!("Rolling back snapshot");
+        match state.snapshot.clone() {
+            Some(snap) => {
+                let _ = zfs::destroy(snap.as_str());
+                state
+            }
+            None => state,
+        }
+    }
+
+    fn clone_up(state: CreateState) -> Result<CreateState, Failure<CreateState>> {
+        match state.snapshot.clone() {
+            Some(snap) => {
+                match state.entry.clone() {
+                    Some(entry) => {
+                        match zfs::clone(snap.as_str(), entry.root.as_str()) {
+                            Ok(_) => Ok(CreateState {
+                                conf: state.conf,
+                                uuid: state.uuid,
+                                dataset: state.dataset,
+                                config: state.config,
+                                entry: state.entry,
+                                snapshot: state.snapshot,
+                                root: Some(entry.root),
+                            }),
+                            Err(error) => Err(Failure::new(state, error)),
+                        }
+                    }
+                    None => Err(Failure::new(state, GenericError::bx("No root to clone"))),
+                }
+            }
+            None => Err(Failure::new(state, GenericError::bx("No snap to clone"))),
+        }
+    }
+    fn clone_down(state: CreateState) -> CreateState {
+        crit!("Rolling back clone");
+        match state.root.clone() {
+            Some(root) => {
+                let _ = zfs::destroy(root.as_str());
+                state
+            }
+            None => state,
+        }
+    }
+    let saga = Saga::new(vec![
+        Adventure::new(insert_up, insert_down),
+        Adventure::new(snap_up, snap_down),
+        Adventure::new(clone_up, clone_down),
+    ]);
+    match saga.tell(state) {
+        Ok(state) => {
+            println!("Created jail {}", state.uuid);
+            Ok(0)
+        }
+        Err(failure) => Err(failure.to_error()),
+    }
 }
 
 fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {

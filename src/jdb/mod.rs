@@ -17,7 +17,7 @@ use errors::{NotFoundError, ConflictError, GenericError};
 use config::Config;
 
 /// `JailDB` index entry
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IdxEntry {
     version: u32,
     /// UUID of the jail

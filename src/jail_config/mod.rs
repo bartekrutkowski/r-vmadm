@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 
 /// Jail configuration values
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NIC {
     /// Interface name
     interface: String,
@@ -120,7 +120,7 @@ impl NIC {
 }
 
 /// Jail configuration values
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JailConfig {
     /// UUID of the jail
     #[serde(default = "new_uuid")]
