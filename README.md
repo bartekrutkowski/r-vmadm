@@ -23,3 +23,29 @@ Images are ZFS datasets that get cloned for a new jail, both living under a give
 10. Download a/the datase `curl -O https://s3.amazonaws.com/datasets.project-fifo.net/freebsd/e022d0f8-5630-11e7-b660-9b2d243d4404.xz`
 11. Extract the dataset `xzcat e022d0f8-5630-11e7-b660-9b2d243d4404.xz | zfs receive zroot/jails/e022d0f8-5630-11e7-b660-9b2d243d4404`
 12. Create a jail: cat example.json | vmadm create
+
+## usage
+```
+vmadm compatible jail manager
+
+USAGE:
+    vmadm [FLAGS] [SUBCOMMAND]
+
+FLAGS:
+    -h, --help       Prints help information
+        --startup
+    -V, --version    Prints version information
+    -v               Sets the level of verbosity
+
+SUBCOMMANDS:
+    console    connects to a jails console
+    create     creates a new jail
+    delete     deletes a jail
+    get        gets a jails configuration
+    help       Prints this message or the help of the given subcommand(s)
+    list       lists jails
+    reboot     reboot a jail
+    start      starts a jail
+    stop       stops a jail
+    update     updates a jail
+```
