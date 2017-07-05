@@ -306,7 +306,7 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
             jail_config::JailConfig::from_reader(io::stdin())?
         }
         Ok(file) => {
-            debug!("Reading from file"; "file" => file );
+            debug!("Reading from file"; "file" => file.clone() );
             jail_config::JailConfig::from_reader(File::open(file)?)?
         }
     };
