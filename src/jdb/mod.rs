@@ -8,6 +8,11 @@ use std::str;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 
+use prettytable::Table;
+use prettytable::format;
+use prettytable::row::Row;
+use prettytable::cell::Cell;
+
 use serde_json;
 
 use jails;
@@ -165,23 +170,6 @@ impl<'a> JDB<'a> {
         }
     }
 
-    /// Prints the jdb database
-    pub fn print(self: &'a JDB<'a>) -> Result<i32, Box<Error>> {
-        println!(
-            "{:37} {:5} {:8} {:17} {:5} {}",
-            "UUID",
-            "TYPE",
-            "RAM",
-            "STATE",
-            "ID",
-            "ALIAS"
-        );
-        for e in &(self.index.entries) {
-            self.print_entry(e)?;
-        }
-        Ok(0)
-    }
-
     /// Reads the config file for a given entry
     fn config(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<JailConfig, Box<Error>> {
         debug!("Loading vm config"; "vm" => &entry.uuid);
@@ -224,8 +212,41 @@ impl<'a> JDB<'a> {
     fn find(self: &'a JDB<'a>, uuid: &str) -> Option<usize> {
         self.index.entries.iter().position(|x| *x.uuid == *uuid)
     }
+    /// Prints the jdb database
+    pub fn print(self: &'a JDB<'a>, headerless: bool, parsable: bool) -> Result<i32, Box<Error>> {
+        let mut table = Table::new();
+        table.set_format(*format::consts::FORMAT_CLEAN);
+        if !headerless {
+            if parsable {
+                println!(
+                    "{}:{}:{}:{}:{}:{}",
+                    "UUID",
+                    "TYPE",
+                    "RAM",
+                    "STATE",
+                    "ID",
+                    "ALIAS"
+                );
+            } else {
+                table.add_row(row!["UUID", "TYPE", "RAM", "STATE", "ID", "ALIAS"]);
+            }
+        }
+        for e in &(self.index.entries) {
+            self.print_entry(e, &mut table, parsable)?;
+        }
+        if !parsable {
+            table.printstd()
+        };
+        Ok(0)
+    }
+
     /// Gets the config and prints an etry
-    fn print_entry(self: &'a JDB<'a>, entry: &IdxEntry) -> Result<i32, Box<Error>> {
+    fn print_entry(
+        self: &'a JDB<'a>,
+        entry: &IdxEntry,
+        table: &mut Table,
+        parsable: bool,
+    ) -> Result<i32, Box<Error>> {
         let conf = self.config(entry)?;
         let id = match self.jails.get(&conf.uuid) {
             Some(jail) => jail.id,
@@ -235,15 +256,26 @@ impl<'a> JDB<'a> {
             0 => &entry.state,
             _ => "running",
         };
-        println!(
-            "{:37} {:5} {:8} {:17} {:5} {}",
-            conf.uuid,
-            "OS",
-            conf.max_physical_memory,
-            state,
-            id,
-            conf.alias,
-        );
+        if parsable {
+            println!(
+                "{}:{}:{}:{}:{}:{}",
+                conf.uuid,
+                "OS",
+                conf.max_physical_memory,
+                state,
+                id,
+                conf.alias
+            );
+        } else {
+            table.add_row(Row::new(vec![
+                Cell::new(conf.uuid.as_str()),
+                Cell::new("OS"),
+                Cell::new(conf.max_physical_memory.to_string().as_str()),
+                Cell::new(state),
+                Cell::new(id.to_string().as_str()),
+                Cell::new(conf.alias.as_str()),
+            ]));
+        };
         Ok(0)
     }
 }

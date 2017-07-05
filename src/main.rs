@@ -20,6 +20,9 @@ extern crate serde_json;
 extern crate toml;
 //extern crate indicatif;
 
+#[macro_use]
+extern crate prettytable;
+
 extern crate uuid;
 use uuid::Uuid;
 
@@ -287,9 +290,12 @@ fn update(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>
     Ok(0)
 }
 
-fn list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+fn list(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    db.print()
+    db.print(
+        matches.is_present("headerless"),
+        matches.is_present("parsable"),
+    )
 }
 
 
