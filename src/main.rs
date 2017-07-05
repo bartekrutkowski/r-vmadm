@@ -39,6 +39,7 @@ use std::result;
 use std::error::Error;
 use std::io;
 use std::fs::OpenOptions;
+use std::fs::File;
 
 use aud::{Failure, Adventure, Saga};
 
@@ -298,12 +299,17 @@ fn list(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     )
 }
 
-
-
-
-
-fn create(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    let jail = jail_config::JailConfig::from_reader(io::stdin())?;
+fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let jail = match value_t!(matches, "file", String) {
+        Err(_) => {
+            debug!("Reading from STDIN");
+            jail_config::JailConfig::from_reader(io::stdin())?
+        }
+        Ok(file) => {
+            debug!("Reading from file"; "file" => file );
+            jail_config::JailConfig::from_reader(File::open(file)?)?
+        }
+    };
     let mut dataset = conf.settings.pool.clone();
     dataset.push('/');
     dataset.push_str(jail.image_uuid.clone().as_str());
