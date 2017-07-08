@@ -136,11 +136,20 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
         res.push(exec_poststop);
         exec_start.push_str("/sbin/ifconfig lo0 127.0.0.1 up; ");
     };
-    exec_start.push_str("jail -c persist name=");
+    // inner jail configuration
+    exec_start.push_str("jail -c");
+    exec_start.push_str(" persist name=");
     exec_start.push_str(uuid.clone().as_str());
     exec_start.push_str(" host.hostname=");
     exec_start.push_str(jail.config.hostname.as_str());
-    exec_start.push_str(" path=/jail ip4=inherit devfs_ruleset=4 securelevel=2 sysvmsg=new sysvsem=new sysvshm=new allow.raw_sockets");
+    exec_start.push_str(" path=/jail");
+    exec_start.push_str(" ip4=inherit");
+    exec_start.push_str(" devfs_ruleset=4");
+    exec_start.push_str(" securelevel=2");
+    exec_start.push_str(" sysvmsg=new");
+    exec_start.push_str(" sysvsem=new");
+    exec_start.push_str(" sysvshm=new");
+    exec_start.push_str(" allow.raw_sockets");
 
     res.push(exec_start);
     Ok(res)
