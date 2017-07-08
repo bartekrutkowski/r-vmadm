@@ -208,7 +208,7 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     debug!("Starting jail {}", uuid);
     match db.get(uuid.as_str()) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { os: Some(_), .. }) => {
+        Ok(jdb::Jail { outer: Some(_), .. }) => {
             println!("The vm is alredy started");
             Err(NotFoundError::bx("VM is already started"))
         }
@@ -225,7 +225,7 @@ fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     debug!("deleteing jail {}", uuid);
     match db.get(uuid.as_str()) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { os: None, .. }) => {
+        Ok(jdb::Jail { outer: None, .. }) => {
             println!("The vm is not running");
             Err(NotFoundError::bx("The vm is not running"))
         }
@@ -270,11 +270,11 @@ fn console(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     debug!("Starting jail {}", uuid);
     match db.get(uuid.as_str()) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { os: None, .. }) => {
+        Ok(jdb::Jail { inner: None, .. }) => {
             println!("The vm is not running");
             Err(NotFoundError::bx("VM is not running"))
         }
-        Ok(jdb::Jail { os: Some(jid), .. }) => {
+        Ok(jdb::Jail { inner: Some(jid), .. }) => {
             let mut child = Command::new(JEXEC)
                 .args(&[jid.id.to_string().as_str(), "/bin/csh"])
                 .spawn()
@@ -295,7 +295,7 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     debug!("deleteing jail {}", uuid);
     match db.get(uuid.as_str()) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { os: None, .. }) => {
+        Ok(jdb::Jail { outer: None, .. }) => {
             println!("The vm is alredy stopped");
             Err(NotFoundError::bx("VM is already stooped"))
         }
@@ -461,7 +461,7 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     debug!("deleteing jail {}", uuid);
     let res = match db.get(uuid.as_str()) {
         Ok(jail) => {
-            if jail.os.is_some() {
+            if jail.outer.is_some() {
                 println!("Stopping jail {}", uuid);
                 jails::stop(&jail)?;
             };

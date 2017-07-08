@@ -40,7 +40,9 @@ pub struct Jail<'a> {
     /// Jail configuration
     pub config: JailConfig,
     /// Record from the OS
-    pub os: Option<&'a jails::JailOSEntry>,
+    pub inner: Option<&'a jails::JailOSEntry>,
+    /// Record from the outer OS jail
+    pub outer: Option<&'a jails::JailOSEntry>,
 }
 
 impl PartialEq for IdxEntry {
@@ -196,11 +198,16 @@ impl<'a> JDB<'a> {
         match self.find(uuid) {
             None => Err(NotFoundError::bx(uuid)),
             Some(index) => {
+                // with nested jails we need to
+                let mut inner_uuid = String::from(uuid);
+                inner_uuid.push('.');
+                inner_uuid.push_str(uuid);
                 let entry = &self.index.entries[index];
                 let config = self.config(entry)?;
                 let jail = Jail {
                     idx: entry,
-                    os: self.jails.get(uuid),
+                    inner: self.jails.get(inner_uuid.as_str()),
+                    outer: self.jails.get(uuid),
                     config: config,
                 };
                 Ok(jail)
