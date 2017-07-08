@@ -138,7 +138,9 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
     };
     exec_start.push_str("jail -c persist name=");
     exec_start.push_str(uuid.clone().as_str());
-    exec_start.push_str(" host.hostname=$(hostname) path=/jail ip4=inherit devfs_ruleset=4 securelevel=2 sysvmsg=new sysvsem=new sysvshm=new allow.raw_sockets");
+    exec_start.push_str(" host.hostname=");
+    exec_start.push_str(jail.config.hostname.as_str());
+    exec_start.push_str(" path=/jail ip4=inherit devfs_ruleset=4 securelevel=2 sysvmsg=new sysvsem=new sysvshm=new allow.raw_sockets");
 
     res.push(exec_start);
     Ok(res)
