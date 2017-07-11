@@ -1,19 +1,6 @@
 dist: trusty
 language: rust
 services: docker
-sudo: required
-
-before_install: set -e
-
-install:
-  - sh ci/install.sh
-  - source ~/.cargo/env || true
-
-script:
-  - bash ci/script.sh
-
-after_script: set +e
-
 
 notifications:
   email:
