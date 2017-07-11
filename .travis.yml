@@ -3,11 +3,6 @@ language: rust
 services: docker
 sudo: required
 
-matrix:
-  include:
-    # *BSD
-    - env: TARGET=x86_64-unknown-freebsd
-
 before_install: set -e
 
 install:
