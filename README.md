@@ -85,3 +85,5 @@ SUBCOMMANDS:
     stop       stops a jail
     update     updates a jail
 ```
+
+Travis CI scripts form: https://github.com/japaric/trust
