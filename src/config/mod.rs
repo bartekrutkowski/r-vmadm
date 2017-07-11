@@ -2,6 +2,8 @@
 use std::io::Read;
 use std::error::Error;
 use std::fs::File;
+use std::collections::BTreeMap as Map;
+
 
 use toml;
 extern crate slog;
@@ -9,11 +11,12 @@ extern crate slog;
 static CONFIG: &'static str = "/etc/vmadm.toml";
 
 /// Global settings
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings {
     pub pool: String,
     #[serde(default = "default_conf_dir")]
     pub conf_dir: String,
+    pub networks: Map<String, String>,
 }
 
 /// Config object
