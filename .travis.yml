@@ -1,0 +1,7 @@
+dist: trusty
+language: rust
+services: docker
+
+notifications:
+  email:
+    on_success: never

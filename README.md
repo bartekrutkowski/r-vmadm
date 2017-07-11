@@ -55,7 +55,7 @@ Some of the steps above require a reboot, there is however no reason not just do
 3. Build the binary `cargo build --release`
 4. Copy the executable `cp target/release/vmadm /usr/local/sbin`
 5. Create the jails folder: `mkdir /etc/jails`
-6. Create the main config file: `echo 'pool = "zroot/jails"' > /etc/vmadm.toml`
+6. Create the main config file: `echo 'pool = "zroot/jails"\n[networks]\nadmin = "bridge0"' > /etc/vmadm.toml`
 7. Download a/the datase `curl -O https://s3.amazonaws.com/datasets.project-fifo.net/freebsd/e022d0f8-5630-11e7-b660-9b2d243d4404.xz`
 8. Extract the dataset `xzcat e022d0f8-5630-11e7-b660-9b2d243d4404.xz | zfs receive zroot/jails/e022d0f8-5630-11e7-b660-9b2d243d4404`
 9. Create a jail: cat example.json | vmadm create
@@ -85,3 +85,5 @@ SUBCOMMANDS:
     stop       stops a jail
     update     updates a jail
 ```
+
+Travis CI scripts form: https://github.com/japaric/trust
