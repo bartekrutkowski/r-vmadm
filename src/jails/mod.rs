@@ -141,10 +141,25 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/dev");
     let devfs_args = vec![devfs.as_str()];
 
-    debug!("un mounting devfs"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
-    let _output = Command::new(UMOUNT).args(devfs_args).output().expect(
+    debug!("un mounting devfs"; "vm" => jail.idx.uuid.clone(), "args" => devfs_args.clone().join(" "));
+    let output = Command::new(UMOUNT).args(devfs_args).output().expect(
         "failed to mount devfs",
     );
+    if !output.status.success() {
+        crit!("remove devfs"; "vm" => jail.idx.uuid.clone());
+    }
+
+    let mut prefix = String::from("jail:");
+    prefix.push_str(jail.idx.uuid.clone().as_str());
+    let limit_args = vec!["-r", prefix.as_str()];
+    debug!("removing rctl limits"; "vm" => jail.idx.uuid.clone(), "args" => limit_args.clone().join(" "));
+    let output = Command::new(RCTL).args(limit_args).output().expect(
+        "rctl failed",
+    );
+    if !output.status.success() {
+        crit!("failed to remove resource limits"; "vm" => jail.idx.uuid.clone());
+    }
+
     Ok(0)
 }
 
@@ -171,7 +186,7 @@ pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {
 /// Reads a dummy jail
 #[cfg(not(target_os = "freebsd"))]
 pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {
-    let reply = "1 ge0b9b05-1f3e-4b11-b0ae-8494bb6ecd53\n";
+    let reply = "1 00000000-1f3e-4b11-b0ae-8494bb6ecd52\n2 00000000-1f3e-4b11-b0ae-8494bb6ecd52.00000000-1f3e-4b11-b0ae-8494bb6ecd52\n";
     let mut res = HashMap::new();
 
     for line in reply.split('\n').filter(|x| *x != "") {
