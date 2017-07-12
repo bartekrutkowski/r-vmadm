@@ -90,7 +90,9 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
     ];
 
     // Basic stuff I don't know what it does
-    res.push(String::from("devfs_ruleset=4"));
+    let mut devfs_ruleset = String::from("devfs_ruleset=");
+    devfs_ruleset.push_str(config.settings.devfs_ruleset.to_string().as_str());
+    res.push(devfs_ruleset);
     res.push(String::from("securelevel=2"));
     res.push(String::from("sysvmsg=new"));
     res.push(String::from("sysvsem=new"));

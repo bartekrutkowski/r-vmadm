@@ -60,6 +60,9 @@ Some of the steps above require a reboot, there is however no reason not just do
 8. Extract the dataset `xzcat e022d0f8-5630-11e7-b660-9b2d243d4404.xz | zfs receive zroot/jails/e022d0f8-5630-11e7-b660-9b2d243d4404`
 9. Create a jail: cat example.json | vmadm create
 
+
+The devfs ruleset to used can be adjusted in the `/etc/vmadm.toml` by adding `devfs_ruleset = <rule number>`.
+
 ## usage
 ```
 vmadm compatible jail manager

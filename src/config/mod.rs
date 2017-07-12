@@ -16,7 +16,13 @@ pub struct Settings {
     pub pool: String,
     #[serde(default = "default_conf_dir")]
     pub conf_dir: String,
+    #[serde(default = "devfs_ruleset")]
+    pub devfs_ruleset: u32,
     pub networks: Map<String, String>,
+}
+
+fn devfs_ruleset() -> u32 {
+    4
 }
 
 /// Config object
