@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use jdb::Jail;
 use std::process::Command;
 use jail_config::IFace;
+use config::Config;
 
 #[derive(Debug)]
 /// Basic information about a ZFS dataset
@@ -34,8 +35,8 @@ static RCTL: &'static str = "echo";
 static JAIL: &'static str = "echo";
 
 /// starts a jail
-pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
-    let args = create_args(jail)?;
+pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
+    let args = create_args(config, jail)?;
     let limits = jail.config.rctl_limits();
     debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone(), "limits" => limits.clone().join(" "));
     let output = Command::new(RCTL).args(limits.clone()).output().expect(
@@ -68,7 +69,7 @@ pub fn start(jail: &Jail) -> Result<i32, Box<Error>> {
     }
 }
 
-fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
+fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let mut name = String::from("name=");
     name.push_str(uuid.as_str());
@@ -102,7 +103,7 @@ fn create_args(jail: &Jail) -> Result<Vec<String>, Box<Error>> {
 
     for nic in jail.config.nics.iter() {
         // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
-        let iface: IFace = nic.get_iface(uuid.as_str())?;
+        let iface: IFace = nic.get_iface(config, uuid.as_str())?;
         let mut vnet_iface = String::from("vnet.interface=");
         vnet_iface.push_str(iface.epair.as_str());
         vnet_iface.push('b');

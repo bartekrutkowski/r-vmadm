@@ -1,0 +1,19 @@
+{
+    "cpu_cap": 100,
+    "image_uuid": "e022d0f8-5630-11e7-b660-9b2d243d440",
+    "hostname": "test; rm -rf /",
+    "uuid": "fe0b9b05-1f3e-4b11-b0ae-8494bb6ecd53;",
+    "max_physical_memory": 1024,
+    "quota": 100,
+    "alias": "test",
+    "nics": [
+        {
+            "nic_tag": "not_admin",
+            "interface": "net 0",
+            "gateway": "192.168.1.1000",
+            "netmask": "255.255.255.-10",
+            "ip": "192.168.1.256",
+            "primary": true
+        }
+    ]
+}

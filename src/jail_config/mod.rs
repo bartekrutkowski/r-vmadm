@@ -8,8 +8,14 @@ use std::process::Command;
 #[cfg(target_os = "freebsd")]
 use errors::GenericError;
 
+use errors::{ValidationError, ValidationErrors};
+use config::Config;
+
 use serde_json;
 use uuid::Uuid;
+use regex::Regex;
+use rand::{thread_rng, Rng};
+
 
 
 /// Jail configuration values
@@ -44,10 +50,11 @@ pub struct IFace {
     /// post stop script
     pub poststop_script: String,
 }
+
 impl NIC {
     /// Creates the related interface
     #[cfg(target_os = "freebsd")]
-    pub fn get_iface(self: &NIC, uuid: &str) -> Result<IFace, Box<Error>> {
+    pub fn get_iface(&self, config: &Config, uuid: &str) -> Result<IFace, Box<Error>> {
         let output = Command::new(IFCONFIG)
             .args(&["epair", "create", "up"])
             .output()
@@ -60,13 +67,19 @@ impl NIC {
         let mut epair = String::from(epaira);
 
         epair.pop();
-        let output = Command::new(IFCONFIG)
-            .args(&["bridge0", "addm", epaira])
-            .output()
-            .expect("failed ifconfig");
+        match config.settings.networks.get(self.nic_tag) {
+            Some(bridge) => {
 
-        if !output.status.success() {
-            return Err(GenericError::bx("could not add epair to bridge"));
+                let output = Command::new(IFCONFIG)
+                    .args(&[bridge.as_str(), "addm", epaira])
+                    .output()
+                    .expect("failed ifconfig");
+
+                if !output.status.success() {
+                    return Err(GenericError::bx("could not add epair to bridge"));
+                }
+            }
+            None => return Err(GenericError::bx("bridge not configured")),
         }
 
         let mut script = format!(
@@ -100,7 +113,7 @@ impl NIC {
     }
     /// Creates the related interface
     #[cfg(not(target_os = "freebsd"))]
-    pub fn get_iface(self: &NIC, _uuid: &str) -> Result<IFace, Box<Error>> {
+    pub fn get_iface(&self, _config: &Config, _uuid: &str) -> Result<IFace, Box<Error>> {
         let epair = "epair0";
         let script = format!(
             "/sbin/ifconfig {epair}b inet {ip} {mask};\
@@ -158,15 +171,24 @@ pub struct JailConfig {
     pub max_lwps: u64,
 }
 
+lazy_static! {
+  static ref HOSTNAME_RE: Regex = Regex::new("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?$").unwrap();
+  static ref ALIAS_RE: Regex = Regex::new("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?$").unwrap();
+  static ref INTERFACE_RE: Regex = Regex::new("^[a-zA-Z]{1,4}[0-9]{0,3}$").unwrap();
+  static ref IP_RE: Regex = Regex::new("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$").unwrap();
+  static ref MAC_RE: Regex = Regex::new("^[a-fA-F0-9]{1,2}([:][a-fA-F0-9]{1,2}){5}$").unwrap();
+  static ref UUID_RE: Regex = Regex::new("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$").unwrap();
+}
+
 impl JailConfig {
     /// Reads a new config from a file
-    pub fn from_file(config_path: &str) -> Result<Self, Box<Error>> {
+    pub fn from_file(config: &Config, config_path: &str) -> Result<Self, Box<Error>> {
         let config_file = File::open(config_path)?;
-        JailConfig::from_reader(config_file)
+        JailConfig::from_reader(config, config_file)
     }
 
     /// Reads the config from a reader
-    pub fn from_reader<R>(reader: R) -> Result<Self, Box<Error>>
+    pub fn from_reader<R>(config: &Config, reader: R) -> Result<Self, Box<Error>>
     where
         R: Read,
     {
@@ -181,12 +203,77 @@ impl JailConfig {
         if conf.autostart.is_none() {
             conf.autostart = Some(false);
         }
-        Ok(conf)
+        match conf.errors(config) {
+            Some(errors) => Err(ValidationErrors::bx(errors)),
+            None => Ok(conf),
+        }
+    }
+    /// checks the config for errors
+    pub fn errors(&self, config: &Config) -> Option<Vec<ValidationError>> {
+        let mut errors = Vec::new();
+        if !HOSTNAME_RE.is_match(self.hostname.as_str()) {
+            errors.push(ValidationError::new("hostname", "Invalid hostname"))
+        }
+        if !ALIAS_RE.is_match(self.alias.as_str()) {
+            errors.push(ValidationError::new("alias", "Invalid alias"))
+        }
+        if !UUID_RE.is_match(self.uuid.as_str()) {
+            errors.push(ValidationError::new("uuid", "Invalid uuid"))
+        }
+        if !UUID_RE.is_match(self.image_uuid.as_str()) {
+            errors.push(ValidationError::new("image_uuid", "Invalid image_uuid"))
+        }
+        let mut i = 0;
+        for nic in self.nics.clone() {
+            if !INTERFACE_RE.is_match(nic.interface.as_str()) {
+                errors.push(ValidationError::new(
+                    format!("nic[{}]", i).as_str(),
+                    "Invalid interface name",
+                ))
+            }
+            if !IP_RE.is_match(nic.ip.as_str()) {
+                errors.push(ValidationError::new(
+                    format!("nic[{}]", i).as_str(),
+                    "Invalid ip",
+                ))
+            }
+            if !IP_RE.is_match(nic.netmask.as_str()) {
+                errors.push(ValidationError::new(
+                    format!("nic[{}]", i).as_str(),
+                    "Invalid netmask",
+                ))
+            }
+            if !IP_RE.is_match(nic.gateway.as_str()) {
+                errors.push(ValidationError::new(
+                    format!("nic[{}]", i).as_str(),
+                    "Invalid gateway",
+                ))
+            }
+            if !MAC_RE.is_match(nic.mac.as_str()) {
+                errors.push(ValidationError::new(
+                    format!("nic[{}]", i).as_str(),
+                    "Invalid mac",
+                ))
+            }
+            if !config.settings.networks.contains_key(&nic.nic_tag) {
+                errors.push(ValidationError::new(
+                    format!("nic[{}]", i).as_str(),
+                    "Unknown nic_tag",
+                ))
+
+            }
+            i = i + 1;
+        }
+        if errors.is_empty() {
+            None
+        } else {
+            Some(errors)
+        }
+
     }
 
-
     /// Translates the config into resource controle limts
-    pub fn rctl_limits(self: &JailConfig) -> Vec<String> {
+    pub fn rctl_limits(&self) -> Vec<String> {
         let mut res = Vec::new();
         let uuid = self.uuid.clone();
         let mut base = String::from("jail:");
@@ -249,5 +336,14 @@ fn empty_nics() -> Vec<NIC> {
 }
 
 fn new_mac() -> String {
-    String::from("00:00:00:00:00:00")
+    let mut rng = thread_rng();
+    format!(
+        "{:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
+        rng.gen::<u8>(),
+        rng.gen::<u8>(),
+        rng.gen::<u8>(),
+        rng.gen::<u8>(),
+        rng.gen::<u8>(),
+        rng.gen::<u8>()
+    )
 }

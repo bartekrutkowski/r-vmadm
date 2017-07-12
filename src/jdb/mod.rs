@@ -177,7 +177,7 @@ impl<'a> JDB<'a> {
         config_path.push(entry.uuid.clone());
         config_path.set_extension("json");
         match config_path.to_str() {
-            Some(path) => JailConfig::from_file(path),
+            Some(path) => JailConfig::from_file(self.config, path),
             None => Err(GenericError::bx("could not generate vm config path")),
         }
     }

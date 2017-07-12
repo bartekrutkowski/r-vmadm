@@ -18,6 +18,11 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 extern crate toml;
+#[macro_use]
+extern crate lazy_static;
+extern crate regex;
+extern crate rand;
+
 //extern crate indicatif;
 
 #[macro_use]
@@ -208,7 +213,7 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
         }
         Ok(jail) => {
             println!("Starting jail {}", jail.idx.uuid);
-            jails::start(&jail)
+            jails::start(conf, &jail)
         }
     }
 }
@@ -226,7 +231,7 @@ fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
         Ok(jail) => {
             println!("Rebooting jail {}", uuid);
             jails::stop(&jail)?;
-            jails::start(&jail)
+            jails::start(conf, &jail)
         }
     }
 }
@@ -303,11 +308,11 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     let jail = match value_t!(matches, "file", String) {
         Err(_) => {
             debug!("Reading from STDIN");
-            jail_config::JailConfig::from_reader(io::stdin())?
+            jail_config::JailConfig::from_reader(conf, io::stdin())?
         }
         Ok(file) => {
             debug!("Reading from file"; "file" => file.clone() );
-            jail_config::JailConfig::from_reader(File::open(file)?)?
+            jail_config::JailConfig::from_reader(conf, File::open(file)?)?
         }
     };
     let mut dataset = conf.settings.pool.clone();
