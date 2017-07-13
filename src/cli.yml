@@ -47,10 +47,6 @@ subcommands:
                 help: UUID if the jail to delete
                 index: 1
                 required: true
-            - force:
-                help: forces the stop
-                short: f
-                takes_value: false
     - start:
         about: starts a jail
         args:
@@ -65,6 +61,10 @@ subcommands:
                 help: UUID if the jail to reboot
                 index: 1
                 required: true
+            - force:
+                help: Forces the reboot
+                short: F
+                takes_value: false
     - console:
         about: connects to a jails console
         args:
@@ -94,6 +94,6 @@ subcommands:
                 index: 1
                 required: true
             - force:
-                help: forces the stop
-                short: f
+                help: Forces the stop
+                short: F
                 takes_value: false
