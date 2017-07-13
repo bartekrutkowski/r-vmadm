@@ -218,7 +218,7 @@ impl<'a> JDB<'a> {
         table.set_format(*format::consts::FORMAT_CLEAN);
         if !headerless {
             if parsable {
-                println!("{}:{}:{}:{}:{}:{}", "UUID", "TYPE", "RAM", "STATE", "ALIAS");
+                println!("{}:{}:{}:{}:{}", "UUID", "TYPE", "RAM", "STATE", "ALIAS");
             } else {
                 table.add_row(row!["UUID", "TYPE", "RAM", "STATE", "ALIAS"]);
             }
@@ -250,7 +250,7 @@ impl<'a> JDB<'a> {
         };
         if parsable {
             println!(
-                "{}:{}:{}:{}:{}:{}",
+                "{}:{}:{}:{}:{}",
                 conf.uuid,
                 "OS",
                 conf.max_physical_memory,
