@@ -176,6 +176,7 @@ fn run() -> i32 {
             ("reboot", Some(reboot_matches)) => reboot(&config, reboot_matches),
             ("stop", Some(stop_matches)) => stop(&config, stop_matches),
             ("get", Some(get_matches)) => get(&config, get_matches),
+            ("info", Some(info_matches)) => info(&config, info_matches),
             ("console", Some(console_matches)) => console(&config, console_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
@@ -245,6 +246,19 @@ fn get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
         Ok(jdb::Jail { config: conf, .. }) => {
             let j = serde_json::to_string_pretty(&conf)?;
             println!("{}\n", j);
+            Ok(0)
+        }
+    }
+}
+
+fn info(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let db = JDB::open(conf)?;
+    let uuid = value_t!(matches, "uuid", String).unwrap();
+    debug!("Starting jail {}", uuid);
+    match db.get(uuid.as_str()) {
+        Err(e) => Err(e),
+        Ok(_jail) => {
+            println!("Unable to get info for jail.\n");
             Ok(0)
         }
     }
