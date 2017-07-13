@@ -67,7 +67,7 @@ impl NIC {
         let mut epair = String::from(epaira);
 
         epair.pop();
-        match config.settings.networks.get(self.nic_tag) {
+        match config.settings.networks.get(&self.nic_tag) {
             Some(bridge) => {
 
                 let output = Command::new(IFCONFIG)
