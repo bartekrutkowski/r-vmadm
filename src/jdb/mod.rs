@@ -218,17 +218,9 @@ impl<'a> JDB<'a> {
         table.set_format(*format::consts::FORMAT_CLEAN);
         if !headerless {
             if parsable {
-                println!(
-                    "{}:{}:{}:{}:{}:{}",
-                    "UUID",
-                    "TYPE",
-                    "RAM",
-                    "STATE",
-                    "ID",
-                    "ALIAS"
-                );
+                println!("{}:{}:{}:{}:{}:{}", "UUID", "TYPE", "RAM", "STATE", "ALIAS");
             } else {
-                table.add_row(row!["UUID", "TYPE", "RAM", "STATE", "ID", "ALIAS"]);
+                table.add_row(row!["UUID", "TYPE", "RAM", "STATE", "ALIAS"]);
             }
         }
         for e in &(self.index.entries) {
@@ -263,7 +255,6 @@ impl<'a> JDB<'a> {
                 "OS",
                 conf.max_physical_memory,
                 state,
-                id,
                 conf.alias
             );
         } else {
@@ -272,7 +263,6 @@ impl<'a> JDB<'a> {
                 Cell::new("OS"),
                 Cell::new(conf.max_physical_memory.to_string().as_str()),
                 Cell::new(state),
-                Cell::new(id.to_string().as_str()),
                 Cell::new(conf.alias.as_str()),
             ]));
         };
