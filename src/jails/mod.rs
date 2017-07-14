@@ -52,9 +52,19 @@ pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/dev");
     let devfs_args = vec!["-t", "devfs", "devfs", devfs.as_str()];
 
-    debug!("mounting devfs"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    debug!("mounting devfs in outer jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
     let _output = Command::new(MOUNT).args(devfs_args).output().expect(
-        "failed to mount devfs",
+        "failed to mount devfs in outer jail",
+    );
+
+    let mut devfs = String::from("/");
+    devfs.push_str(jail.idx.root.as_str());
+    devfs.push_str("/root/jail/dev");
+    let devfs_args = vec!["-t", "devfs", "devfs", devfs.as_str()];
+
+    debug!("mounting devfs in inner jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    let _output = Command::new(MOUNT).args(devfs_args).output().expect(
+        "failed to mount devfs in inner jail",
     );
 
     debug!("Start jail"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
@@ -98,6 +108,11 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
     res.push(String::from("sysvsem=new"));
     res.push(String::from("sysvshm=new"));
 
+    // for nested jails
+    res.push(String::from("allow.raw_sockets"));
+    res.push(String::from("children.max=1"));
+
+
     // let mut exec_stop = String::from("exec.stop=");
     let mut exec_start = String::from("exec.start=");
     let mut exec_poststop = String::from("exec.poststop=");
@@ -121,6 +136,21 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
         res.push(exec_poststop);
         exec_start.push_str("/sbin/ifconfig lo0 127.0.0.1 up; ");
     };
+    // inner jail configuration
+    exec_start.push_str("jail -c");
+    exec_start.push_str(" persist name=");
+    exec_start.push_str(uuid.clone().as_str());
+    exec_start.push_str(" host.hostname=");
+    exec_start.push_str(jail.config.hostname.as_str());
+    exec_start.push_str(" path=/jail");
+    exec_start.push_str(" ip4=inherit");
+    exec_start.push_str(" devfs_ruleset=4");
+    exec_start.push_str(" securelevel=2");
+    exec_start.push_str(" sysvmsg=new");
+    exec_start.push_str(" sysvsem=new");
+    exec_start.push_str(" sysvshm=new");
+    exec_start.push_str(" allow.raw_sockets");
+
     res.push(exec_start);
     Ok(res)
 
@@ -143,12 +173,25 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/dev");
     let devfs_args = vec![devfs.as_str()];
 
-    debug!("un mounting devfs"; "vm" => jail.idx.uuid.clone(), "args" => devfs_args.clone().join(" "));
+    debug!("un mounting devfs in outer jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
     let output = Command::new(UMOUNT).args(devfs_args).output().expect(
-        "failed to mount devfs",
+        "failed to mount devfs in outer jail",
     );
     if !output.status.success() {
-        crit!("remove devfs"; "vm" => jail.idx.uuid.clone());
+        crit!("failed to mount devfs in outer jail"; "vm" => jail.idx.uuid.clone());
+    }
+
+    let mut devfs = String::from("/");
+    devfs.push_str(jail.idx.root.as_str());
+    devfs.push_str("/root/jail/dev");
+    let devfs_args = vec![devfs.as_str()];
+
+    debug!("un mounting devfs in inner jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    let output = Command::new(UMOUNT).args(devfs_args).output().expect(
+        "failed to mount devfs in inner jail",
+    );
+    if !output.status.success() {
+        crit!("failed to mount devfs in inner jail"; "vm" => jail.idx.uuid.clone());
     }
 
     let mut prefix = String::from("jail:");
