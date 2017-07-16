@@ -115,7 +115,7 @@ fn start_jail(uuid: String, args: Vec<String>) -> Result<u64, Box<Error>> {
         // the Jail command has a bug that it will not honor -q
         // so everything but the first line might be garbage we have to
         // ignore.
-        let lines = reply.lines();
+        let mut lines = reply.lines();
         let first = lines.next().unwrap();
         // this seems odd but we guarnatee our ID is a int this way
         let id: u64 = first.trim().parse().unwrap();
