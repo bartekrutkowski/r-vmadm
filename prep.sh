@@ -2,7 +2,7 @@
 #set -x
 
 declare -a DIRS=("bin" "dev" "mnt" "proc" "tmp" "etc/defaults")
-declare -a EXECS=("COPYRIGHT" "/libexec/ld-elf.so.1" "bin/sh" "/sbin/ifconfig" "usr/sbin/jail")
+declare -a EXECS=("COPYRIGHT" "/libexec/ld-elf.so.1" "bin/sh" "/sbin/ifconfig" "/sbin/route" "usr/sbin/jail")
 
 #### End user editable vars
 

@@ -189,7 +189,7 @@ fn create_args(config: &Config, jail: &Jail) -> Result<CreateArgs, Box<Error>> {
     exec_start.push_str(" sysvsem=new");
     exec_start.push_str(" sysvshm=new");
     exec_start.push_str(" allow.raw_sockets");
-    exec_start.push_str(" exec.start=sh /etc/rc");
+    exec_start.push_str(" exec.start='sh /etc/rc'");
 
 
     args.push(exec_start);
