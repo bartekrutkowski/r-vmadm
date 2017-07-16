@@ -17,6 +17,11 @@ pub struct JailOSEntry {
     pub id: u64,
 }
 
+struct CreateArgs {
+    args: Vec<String>,
+    ifs: Vec<IFace>,
+}
+
 #[cfg(target_os = "freebsd")]
 static UMOUNT: &'static str = "umount";
 #[cfg(target_os = "freebsd")]
@@ -34,9 +39,14 @@ static RCTL: &'static str = "echo";
 #[cfg(not(target_os = "freebsd"))]
 static JAIL: &'static str = "echo";
 
+#[cfg(target_os = "freebsd")]
+static IFCONFIG: &'static str = "/sbin/ifconfig";
+#[cfg(not(target_os = "freebsd"))]
+static IFCONFIG: &'static str = "echo";
+
+
 /// starts a jail
 pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
-    let args = create_args(config, jail)?;
     let limits = jail.config.rctl_limits();
     debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone(), "limits" => limits.clone().join(" "));
     let output = Command::new(RCTL).args(limits.clone()).output().expect(
@@ -67,19 +77,51 @@ pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
         "failed to mount devfs in inner jail",
     );
 
+    let CreateArgs { args, ifs } = create_args(config, jail)?;
     debug!("Start jail"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
+    let id = start_jail(jail.idx.uuid.clone(), args)?;
+    let id_str = id.to_string();
+    let mut jprefix = String::from("j");
+    jprefix.push_str(id_str.as_str());
+    jprefix.push(':');
+    for iface in ifs.iter() {
+        let mut epair = String::from(iface.epair.clone());
+        epair.push('a');
+        let mut target_name = jprefix.clone();
+        target_name.push_str(iface.iface.as_str());
+        let args = vec![epair, String::from("name"), target_name];
+        debug!("renaiming epair"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
+        let output = Command::new(IFCONFIG).args(args.clone()).output().expect(
+            "ifconfig failed",
+        );
+        if !output.status.success() {
+            crit!("failed to rename interface"; "vm" => jail.idx.uuid.clone());
+        }
+    }
+    Ok(0)
+}
+#[cfg(not(target_os = "freebsd"))]
+fn start_jail(_uuid: String, _args: Vec<String>) -> Result<u64, Box<Error>> {
+    Ok(42)
+}
+
+#[cfg(target_os = "freebsd")]
+fn start_jail(uuid: String, args: Vec<String>) -> Result<u64, Box<Error>> {
     let output = Command::new(JAIL).args(args.clone()).output().expect(
         "jail failed",
     );
+    let reply = String::from_utf8_lossy(&output.stdout).into_owned();
     if output.status.success() {
-        Ok(0)
+        // this seems odd but we guarnatee our ID is a int this way
+        let id: u64 = reply.trim().parse().unwrap();
+        Ok(id)
     } else {
-        crit!("Failed to start jail"; "vm" => jail.idx.uuid.clone());
-        Err(GenericError::bx("Could not start jail"))
+        crit!("Failed to start jail"; "vm" => uuid);
+        Err(GenericError::bx(reply.as_str()))
     }
 }
 
-fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> {
+fn create_args(config: &Config, jail: &Jail) -> Result<CreateArgs, Box<Error>> {
     let uuid = jail.idx.uuid.clone();
     let mut name = String::from("name=");
     name.push_str(uuid.as_str());
@@ -90,7 +132,8 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
     hostuuid.push_str(uuid.as_str());
     let mut hostname = String::from("host.hostname=");
     hostname.push_str(jail.config.hostname.as_str());
-    let mut res = vec![
+    let mut args = vec![
+        String::from("-i"),
         String::from("-c"),
         String::from("persist"),
         name,
@@ -98,42 +141,38 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
         hostuuid,
         hostname,
     ];
+    let mut ifs = Vec::new();
 
     // Basic stuff I don't know what it does
     let mut devfs_ruleset = String::from("devfs_ruleset=");
     devfs_ruleset.push_str(config.settings.devfs_ruleset.to_string().as_str());
-    res.push(devfs_ruleset);
-    res.push(String::from("securelevel=2"));
-    res.push(String::from("sysvmsg=new"));
-    res.push(String::from("sysvsem=new"));
-    res.push(String::from("sysvshm=new"));
+    args.push(devfs_ruleset);
+    args.push(String::from("securelevel=2"));
+    args.push(String::from("sysvmsg=new"));
+    args.push(String::from("sysvsem=new"));
+    args.push(String::from("sysvshm=new"));
 
     // for nested jails
-    res.push(String::from("allow.raw_sockets"));
-    res.push(String::from("children.max=1"));
+    args.push(String::from("allow.raw_sockets"));
+    args.push(String::from("children.max=1"));
 
 
     // let mut exec_stop = String::from("exec.stop=");
     let mut exec_start = String::from("exec.start=");
-    let mut exec_poststop = String::from("exec.poststop=");
-    res.push(String::from("vnet=new"));
-
+    args.push(String::from("vnet=new"));
     for nic in jail.config.nics.iter() {
         // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
         let iface: IFace = nic.get_iface(config, uuid.as_str())?;
+        ifs.push(iface.clone());
         let mut vnet_iface = String::from("vnet.interface=");
         vnet_iface.push_str(iface.epair.as_str());
         vnet_iface.push('b');
 
-        res.push(vnet_iface);
+        args.push(vnet_iface);
 
         exec_start.push_str(iface.start_script.as_str());
-        exec_poststop.push_str(iface.poststop_script.as_str());
     }
     if !jail.config.nics.is_empty() {
-        // exec_stop.push('"');
-        // res.push(exec_stop);
-        res.push(exec_poststop);
         exec_start.push_str("/sbin/ifconfig lo0 127.0.0.1 up; ");
     };
     // inner jail configuration
@@ -150,9 +189,11 @@ fn create_args(config: &Config, jail: &Jail) -> Result<Vec<String>, Box<Error>> 
     exec_start.push_str(" sysvsem=new");
     exec_start.push_str(" sysvshm=new");
     exec_start.push_str(" allow.raw_sockets");
+    exec_start.push_str(" exec.start=sh /etc/rc");
 
-    res.push(exec_start);
-    Ok(res)
+
+    args.push(exec_start);
+    Ok(CreateArgs { args, ifs })
 
 }
 
@@ -201,8 +242,33 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
     let output = Command::new(RCTL).args(limit_args).output().expect(
         "rctl failed",
     );
+
     if !output.status.success() {
         crit!("failed to remove resource limits"; "vm" => jail.idx.uuid.clone());
+    }
+    match jail.outer {
+        Some(outer) => {
+            let id_str = outer.id.to_string();
+            let mut jprefix = String::from("j");
+            jprefix.push_str(id_str.as_str());
+            jprefix.push(':');
+            for nic in jail.config.nics.clone() {
+                let mut target_name = jprefix.clone();
+                target_name.push_str(nic.interface.as_str());
+                let args = vec![target_name, String::from("destroy")];
+                debug!("renaiming epair"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
+                let output = Command::new(IFCONFIG).args(args.clone()).output().expect(
+                    "ifconfig failed",
+                );
+                if !output.status.success() {
+                    crit!("failed to rename interface"; "vm" => jail.idx.uuid.clone());
+                }
+            }
+        }
+        None => {
+            crit!("Failed to get outer jail id to delete interfaces"; "vm" => jail.idx.uuid.clone())
+        }
+
     }
 
     Ok(0)

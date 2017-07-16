@@ -73,6 +73,7 @@ pub fn origin(dataset: &str) -> Result<String, Box<Error>> {
         Err(GenericError::bx("Failed to get dataset"))
     }
 }
+
 // /// create a zfs datasets in a pool
 // pub fn create(dataset: &str) -> Result<i32, Box<Error>> {
 //     debug!("Creating ZFS dataset"; "dataset" => dataset);

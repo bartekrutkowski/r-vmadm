@@ -22,7 +22,7 @@ use rand::{thread_rng, Rng};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NIC {
     /// Interface name
-    interface: String,
+    pub interface: String,
     #[serde(default = "new_mac")]
     mac: String,
     nic_tag: String,
@@ -41,14 +41,14 @@ fn dflt_false() -> bool {
 static IFCONFIG: &'static str = "/sbin/ifconfig";
 
 /// Interface after creating
+#[derive(Debug, Clone)]
 pub struct IFace {
+    /// The interface name
+    pub iface: String,
     /// epair
     pub epair: String,
     /// Startup script for the jail
     pub start_script: String,
-    // end_script: String,
-    /// post stop script
-    pub poststop_script: String,
 }
 
 impl NIC {
@@ -103,12 +103,10 @@ impl NIC {
         if !output.status.success() {
             return Err(GenericError::bx("could not set description"));
         }
-        script.push_str("sh /etc/rc; ");
-        let poststop = format!("{} {} destroy;", IFCONFIG, epaira);
         Ok(IFace {
+            iface: self.interface.clone(),
             epair: epair,
             start_script: script,
-            poststop_script: poststop,
         })
     }
     /// Creates the related interface
@@ -125,9 +123,9 @@ impl NIC {
         );
 
         Ok(IFace {
+            iface: self.interface.clone(),
             epair: String::from(epair),
             start_script: script,
-            poststop_script: String::from(""),
         })
     }
 }
