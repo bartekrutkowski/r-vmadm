@@ -85,12 +85,12 @@ impl NIC {
 
         let mut script = if self.vlan.is_some() {
             // This may seem stupid but freebsd can't create a vlan interface
-            // that is not named vlan<X> or <something>.<X>
+            // that is not named vlan<X> or <interface>.<X>
             // however once created it happiely renames it ...
             format!(
                 "/sbin/ifconfig {epair}b name {iface}p; \
-                /sbin/ifconfig {iface}.{vlan} create vlan {vlan} vlandev {iface}p; \
-                /sbin/ifconfig {iface}.{vlan} name {iface}; \
+                /sbin/ifconfig {iface}p.{vlan} create vlan {vlan} vlandev {iface}p; \
+                /sbin/ifconfig {iface}p.{vlan} name {iface}; \
                 /sbin/ifconfig {iface} inet {ip} {mask}; ",
                 epair = epair,
                 ip = self.ip,
@@ -133,12 +133,12 @@ impl NIC {
         let epair = "epair0";
         let script = if self.vlan.is_some() {
             // This may seem stupid but freebsd can't create a vlan interface
-            // that is not named vlan<X> or <something>.<X>
+            // that is not named vlan<X> or <interface>.<X>
             // however once created it happiely renames it ...
             format!(
                 "/sbin/ifconfig {epair}b name {iface}p; \
-                /sbin/ifconfig {iface}.{vlan} create vlan {vlan} vlandev {iface}p; \
-                /sbin/ifconfig {iface}.{vlan} name {iface}; \
+                /sbin/ifconfig {iface}p.{vlan} create vlan {vlan} vlandev {iface}p; \
+                /sbin/ifconfig {iface}p.{vlan} name {iface}; \
                 /sbin/ifconfig {iface} inet {ip} {mask}; ",
                 epair = epair,
                 ip = self.ip,
