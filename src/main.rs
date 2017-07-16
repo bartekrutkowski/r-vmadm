@@ -345,7 +345,7 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 
     let state = CreateState {
         conf,
-        uuid: jail.image_uuid.clone(),
+        uuid: jail.uuid.clone(),
         dataset,
         config: jail,
         entry: None,

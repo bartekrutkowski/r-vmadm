@@ -93,13 +93,14 @@ pub fn snapshot(dataset: &str, snapshot: &str) -> Result<String, Box<Error>> {
     let mut snap = String::from(dataset);
     snap.push('@');
     snap.push_str(snapshot);
-    debug!("Creating ZFS snapshot"; "snapshot" => snap.as_str());
-    let output = Command::new("zfs")
-        .args(&["snapshot", snap.as_str()])
-        .output()
-        .expect("zfs snapshot failed");
+    let args = vec!["snapshot", snap.as_str()];
+    debug!("Creating ZFS snapshot"; "dataset" => dataset, "snapshot" => snapshot,
+    "args" => args.clone().join(" "));
+    let output = Command::new("zfs").args(args).output().expect(
+        "zfs snapshot failed",
+    );
     if output.status.success() {
-        Ok(snap)
+        Ok(snap.clone())
     } else {
         Err(GenericError::bx("Failed create snapshot"))
     }

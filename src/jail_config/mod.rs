@@ -127,7 +127,7 @@ impl NIC {
     #[cfg(not(target_os = "freebsd"))]
     pub fn get_iface(&self, _config: &Config, _uuid: &str) -> Result<IFace, Box<Error>> {
         let epair = "epair0";
-        let mut script = if self.vlan.is_some() {
+        let script = if self.vlan.is_some() {
             format!(
                 "/sbin/ifconfig {epair}b name {iface}.phys; \
                 /sbin/ifconfig {iface} create vlan {vlan} vlandev {iface}.phys; \
