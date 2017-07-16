@@ -25,6 +25,7 @@ pub struct NIC {
     pub interface: String,
     #[serde(default = "new_mac")]
     mac: String,
+    vlan: Option<u16>,
     nic_tag: String,
     ip: String,
     netmask: String,
@@ -82,14 +83,27 @@ impl NIC {
             None => return Err(GenericError::bx("bridge not configured")),
         }
 
-        let mut script = format!(
-            "/sbin/ifconfig {epair}b inet {ip} {mask}; \
-        /sbin/ifconfig {epair}b name {iface}; ",
-            epair = epair,
-            ip = self.ip,
-            mask = self.netmask,
-            iface = self.interface
-        );
+        let mut script = if self.vlan.is_some() {
+            format!(
+                "/sbin/ifconfig {epair}b name {iface}.phys; \
+                /sbin/ifconfig {iface} create vlan {vlan} vlandev {iface}.phys; \
+                /sbin/ifconfig {iface} inet {ip} {mask}; ",
+                epair = epair,
+                ip = self.ip,
+                mask = self.netmask,
+                iface = self.interface,
+                vlan = self.vlan.unwrap()
+            )
+        } else {
+            format!(
+                "/sbin/ifconfig {epair}b name {iface}; \
+                /sbin/ifconfig {iface} inet {ip} {mask}; ",
+                epair = epair,
+                ip = self.ip,
+                mask = self.netmask,
+                iface = self.interface
+            )
+        };
         if self.primary {
             let route = format!("/sbin/route add default -gateway {}; ", self.gateway);
             script.push_str(route.as_str())
@@ -113,14 +127,27 @@ impl NIC {
     #[cfg(not(target_os = "freebsd"))]
     pub fn get_iface(&self, _config: &Config, _uuid: &str) -> Result<IFace, Box<Error>> {
         let epair = "epair0";
-        let script = format!(
-            "/sbin/ifconfig {epair}b inet {ip} {mask};\
-        /sbin/ifconfig {epair}b name {iface};",
-            epair = epair,
-            ip = self.ip,
-            mask = self.netmask,
-            iface = self.interface
-        );
+        let mut script = if self.vlan.is_some() {
+            format!(
+                "/sbin/ifconfig {epair}b name {iface}.phys; \
+                /sbin/ifconfig {iface} create vlan {vlan} vlandev {iface}.phys; \
+                /sbin/ifconfig {iface} inet {ip} {mask}; ",
+                epair = epair,
+                ip = self.ip,
+                mask = self.netmask,
+                iface = self.interface,
+                vlan = self.vlan.unwrap()
+            )
+        } else {
+            format!(
+                "/sbin/ifconfig {epair}b name {iface}; \
+                /sbin/ifconfig {iface} inet {ip} {mask}; ",
+                epair = epair,
+                ip = self.ip,
+                mask = self.netmask,
+                iface = self.interface
+            )
+        };
 
         Ok(IFace {
             iface: self.interface.clone(),
