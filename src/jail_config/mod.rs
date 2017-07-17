@@ -88,9 +88,8 @@ impl NIC {
             // that is not named vlan<X> or <interface>.<X>
             // however once created it happiely renames it ...
             format!(
-                "/sbin/ifconfig {epair}b name {iface}p; \
-                /sbin/ifconfig {iface}p.{vlan} create vlan {vlan} vlandev {iface}p; \
-                /sbin/ifconfig {iface}p.{vlan} name {iface}; \
+                "/sbin/ifconfig {epair}b.{vlan} create vlan {vlan} vlandev {epair}p; \
+                /sbin/ifconfig {epair}b.{vlan} name {iface}; \
                 /sbin/ifconfig {iface} inet {ip} {mask}; ",
                 epair = epair,
                 ip = self.ip,
