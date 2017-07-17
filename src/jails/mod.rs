@@ -7,6 +7,7 @@ use jdb::Jail;
 use std::process::Command;
 use jail_config::IFace;
 use config::Config;
+use uuid::Uuid;
 
 #[derive(Debug)]
 /// Basic information about a ZFS dataset
@@ -48,12 +49,12 @@ static IFCONFIG: &'static str = "echo";
 /// starts a jail
 pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
     let limits = jail.config.rctl_limits();
-    debug!("Setting jail limits"; "vm" => jail.idx.uuid.clone(), "limits" => limits.clone().join(" "));
+    debug!("Setting jail limits"; "vm" => jail.idx.uuid.hyphenated().to_string(), "limits" => limits.clone().join(" "));
     let output = Command::new(RCTL).args(limits.clone()).output().expect(
         "limit failed",
     );
     if !output.status.success() {
-        crit!("failed to set resource limits"; "vm" => jail.idx.uuid.clone());
+        crit!("failed to set resource limits"; "vm" => jail.idx.uuid.hyphenated().to_string());
         return Err(GenericError::bx("Could not set jail limits"));
     }
 
@@ -62,7 +63,7 @@ pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/dev");
     let devfs_args = vec!["-t", "devfs", "devfs", devfs.as_str()];
 
-    debug!("mounting devfs in outer jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    debug!("mounting devfs in outer jail"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" =>devfs_args.clone().join(" "));
     let _output = Command::new(MOUNT).args(devfs_args).output().expect(
         "failed to mount devfs in outer jail",
     );
@@ -72,14 +73,14 @@ pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/jail/dev");
     let devfs_args = vec!["-t", "devfs", "devfs", devfs.as_str()];
 
-    debug!("mounting devfs in inner jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    debug!("mounting devfs in inner jail"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" =>devfs_args.clone().join(" "));
     let _output = Command::new(MOUNT).args(devfs_args).output().expect(
         "failed to mount devfs in inner jail",
     );
 
     let CreateArgs { args, ifs } = create_args(config, jail)?;
-    debug!("Start jail"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
-    let id = start_jail(jail.idx.uuid.clone(), args)?;
+    debug!("Start jail"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" => args.clone().join(" "));
+    let id = start_jail(&jail.idx.uuid, args)?;
     let id_str = id.to_string();
     let mut jprefix = String::from("j");
     jprefix.push_str(id_str.as_str());
@@ -90,23 +91,23 @@ pub fn start(config: &Config, jail: &Jail) -> Result<i32, Box<Error>> {
         let mut target_name = jprefix.clone();
         target_name.push_str(iface.iface.as_str());
         let args = vec![epair, String::from("name"), target_name];
-        debug!("renaiming epair"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
+        debug!("renaiming epair"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" => args.clone().join(" "));
         let output = Command::new(IFCONFIG).args(args.clone()).output().expect(
             "ifconfig failed",
         );
         if !output.status.success() {
-            crit!("failed to rename interface"; "vm" => jail.idx.uuid.clone());
+            crit!("failed to rename interface"; "vm" => jail.idx.uuid.hyphenated().to_string());
         }
     }
     Ok(0)
 }
 #[cfg(not(target_os = "freebsd"))]
-fn start_jail(_uuid: String, _args: Vec<String>) -> Result<u64, Box<Error>> {
+fn start_jail(_uuid: &Uuid, _args: Vec<String>) -> Result<u64, Box<Error>> {
     Ok(42)
 }
 
 #[cfg(target_os = "freebsd")]
-fn start_jail(uuid: String, args: Vec<String>) -> Result<u64, Box<Error>> {
+fn start_jail(&uuid: Uuid, args: Vec<String>) -> Result<u64, Box<Error>> {
     let output = Command::new(JAIL).args(args.clone()).output().expect(
         "jail failed",
     );
@@ -127,7 +128,7 @@ fn start_jail(uuid: String, args: Vec<String>) -> Result<u64, Box<Error>> {
 }
 
 fn create_args(config: &Config, jail: &Jail) -> Result<CreateArgs, Box<Error>> {
-    let uuid = jail.idx.uuid.clone();
+    let uuid = jail.idx.uuid.hyphenated().to_string();
     let mut name = String::from("name=");
     name.push_str(uuid.as_str());
     let mut path = String::from("path=/");
@@ -167,7 +168,7 @@ fn create_args(config: &Config, jail: &Jail) -> Result<CreateArgs, Box<Error>> {
     args.push(String::from("vnet=new"));
     for nic in jail.config.nics.iter() {
         // see https://lists.freebsd.org/pipermail/freebsd-jail//2016-December/003305.html
-        let iface: IFace = nic.get_iface(config, uuid.as_str())?;
+        let iface: IFace = nic.get_iface(config, &jail.idx.uuid)?;
         ifs.push(iface.clone());
         let mut vnet_iface = String::from("vnet.interface=");
         vnet_iface.push_str(iface.epair.as_str());
@@ -183,7 +184,7 @@ fn create_args(config: &Config, jail: &Jail) -> Result<CreateArgs, Box<Error>> {
     // inner jail configuration
     exec_start.push_str("jail -c");
     exec_start.push_str(" persist name=");
-    exec_start.push_str(uuid.clone().as_str());
+    exec_start.push_str(uuid.as_str());
     exec_start.push_str(" host.hostname=");
     exec_start.push_str(jail.config.hostname.as_str());
     exec_start.push_str(" path=/jail");
@@ -198,18 +199,17 @@ fn create_args(config: &Config, jail: &Jail) -> Result<CreateArgs, Box<Error>> {
 
     args.push(exec_start);
     Ok(CreateArgs { args, ifs })
-
 }
 
 /// stops a jail
 pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
-    debug!("Dleting jail"; "vm" => jail.idx.uuid.clone());
+    debug!("Dleting jail"; "vm" => jail.idx.uuid.hyphenated().to_string());
     let output = Command::new(JAIL)
-        .args(&["-r", jail.idx.uuid.clone().as_str()])
+        .args(&["-r", jail.idx.uuid.hyphenated().to_string().as_str()])
         .output()
         .expect("zfs list failed");
     if !output.status.success() {
-        crit!("Failed to stop jail"; "vm" => jail.idx.uuid.clone());
+        crit!("Failed to stop jail"; "vm" => jail.idx.uuid.hyphenated().to_string());
         return Err(GenericError::bx("Could not stop jail"));
     }
 
@@ -218,12 +218,12 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/dev");
     let devfs_args = vec![devfs.as_str()];
 
-    debug!("un mounting devfs in outer jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    debug!("un mounting devfs in outer jail"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" => devfs_args.clone().join(" "));
     let output = Command::new(UMOUNT).args(devfs_args).output().expect(
         "failed to mount devfs in outer jail",
     );
     if !output.status.success() {
-        crit!("failed to mount devfs in outer jail"; "vm" => jail.idx.uuid.clone());
+        crit!("failed to mount devfs in outer jail"; "vm" => jail.idx.uuid.hyphenated().to_string());
     }
 
     let mut devfs = String::from("/");
@@ -231,24 +231,24 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
     devfs.push_str("/root/jail/dev");
     let devfs_args = vec![devfs.as_str()];
 
-    debug!("un mounting devfs in inner jail"; "vm" => jail.idx.uuid.clone(), "args" =>devfs_args.clone().join(" "));
+    debug!("un mounting devfs in inner jail"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" =>devfs_args.clone().join(" "));
     let output = Command::new(UMOUNT).args(devfs_args).output().expect(
         "failed to mount devfs in inner jail",
     );
     if !output.status.success() {
-        crit!("failed to mount devfs in inner jail"; "vm" => jail.idx.uuid.clone());
+        crit!("failed to mount devfs in inner jail"; "vm" => jail.idx.uuid.hyphenated().to_string());
     }
 
     let mut prefix = String::from("jail:");
-    prefix.push_str(jail.idx.uuid.clone().as_str());
+    prefix.push_str(jail.idx.uuid.hyphenated().to_string().as_str());
     let limit_args = vec!["-r", prefix.as_str()];
-    debug!("removing rctl limits"; "vm" => jail.idx.uuid.clone(), "args" => limit_args.clone().join(" "));
+    debug!("removing rctl limits"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" => limit_args.clone().join(" "));
     let output = Command::new(RCTL).args(limit_args).output().expect(
         "rctl failed",
     );
 
     if !output.status.success() {
-        crit!("failed to remove resource limits"; "vm" => jail.idx.uuid.clone());
+        crit!("failed to remove resource limits"; "vm" => jail.idx.uuid.hyphenated().to_string());
     }
     match jail.outer {
         Some(outer) => {
@@ -260,17 +260,17 @@ pub fn stop(jail: &Jail) -> Result<i32, Box<Error>> {
                 let mut target_name = jprefix.clone();
                 target_name.push_str(nic.interface.as_str());
                 let args = vec![target_name, String::from("destroy")];
-                debug!("renaiming epair"; "vm" => jail.idx.uuid.clone(), "args" => args.clone().join(" "));
+                debug!("renaiming epair"; "vm" => jail.idx.uuid.hyphenated().to_string(), "args" => args.clone().join(" "));
                 let output = Command::new(IFCONFIG).args(args.clone()).output().expect(
                     "ifconfig failed",
                 );
                 if !output.status.success() {
-                    crit!("failed to rename interface"; "vm" => jail.idx.uuid.clone());
+                    crit!("failed to rename interface"; "vm" => jail.idx.uuid.hyphenated().to_string());
                 }
             }
         }
         None => {
-            crit!("Failed to get outer jail id to delete interfaces"; "vm" => jail.idx.uuid.clone())
+            crit!("Failed to get outer jail id to delete interfaces"; "vm" => jail.idx.uuid.hyphenated().to_string())
         }
 
     }
@@ -292,7 +292,7 @@ pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {
 
     for line in reply.split('\n').filter(|x| *x != "") {
         let entry = deconstruct_entry(line)?;
-        res.insert(entry.uuid.clone(), entry);
+        res.insert(entry.uuid.hyphenated().to_string(), entry);
         ()
     }
     Ok(res)

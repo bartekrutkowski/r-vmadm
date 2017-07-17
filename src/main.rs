@@ -64,7 +64,7 @@ mod config;
 use config::Config;
 
 pub mod errors;
-use errors::{GenericError, NotFoundError};
+use errors::GenericError;
 
 
 #[cfg(target_os = "freebsd")]
@@ -204,13 +204,14 @@ fn startup(_conf: &Config) -> Result<i32, Box<Error>> {
 
 fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Starting jail {}", uuid);
-    match db.get(uuid.as_str()) {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    debug!("Starting jail {}", uuid.hyphenated());
+    match db.get(&uuid) {
         Err(e) => Err(e),
         Ok(jdb::Jail { outer: Some(_), .. }) => {
             println!("The vm is alredy started");
-            Err(NotFoundError::bx("VM is already started"))
+            Err(GenericError::bx("VM is already started"))
         }
         Ok(jail) => {
             println!("Starting jail {}", jail.idx.uuid);
@@ -221,13 +222,14 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
 
 fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("deleteing jail {}", uuid);
-    match db.get(uuid.as_str()) {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    debug!("deleteing jail {}", uuid.hyphenated());
+    match db.get(&uuid) {
         Err(e) => Err(e),
         Ok(jdb::Jail { outer: None, .. }) => {
             println!("The vm is not running");
-            Err(NotFoundError::bx("The vm is not running"))
+            Err(GenericError::bx("The vm is not running"))
         }
         Ok(jail) => {
             println!("Rebooting jail {}", uuid);
@@ -239,9 +241,9 @@ fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 
 fn get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Starting jail {}", uuid);
-    match db.get(uuid.as_str()) {
+    let uuid = value_t!(matches, "uuid", Uuid).unwrap();
+    debug!("Starting jail {}", uuid.hyphenated().to_string());
+    match db.get(&uuid) {
         Err(e) => Err(e),
         Ok(jdb::Jail { config: conf, .. }) => {
             let j = serde_json::to_string_pretty(&conf)?;
@@ -253,9 +255,10 @@ fn get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
 
 fn info(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Starting jail {}", uuid);
-    match db.get(uuid.as_str()) {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    debug!("Starting jail {}", uuid.hyphenated());
+    match db.get(&uuid) {
         Err(e) => Err(e),
         Ok(_jail) => {
             println!("Unable to get info for jail.\n");
@@ -266,13 +269,14 @@ fn info(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
 
 fn console(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("Starting jail {}", uuid);
-    match db.get(uuid.as_str()) {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    debug!("Starting jail {}", uuid.hyphenated());
+    match db.get(&uuid) {
         Err(e) => Err(e),
         Ok(jdb::Jail { inner: None, .. }) => {
             println!("The vm is not running");
-            Err(NotFoundError::bx("VM is not running"))
+            Err(GenericError::bx("VM is not running"))
         }
         Ok(jdb::Jail { inner: Some(jid), .. }) => {
             let mut child = Command::new(JEXEC)
@@ -291,13 +295,14 @@ fn console(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
 
 fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("deleteing jail {}", uuid);
-    match db.get(uuid.as_str()) {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    debug!("stopping jail {}", uuid.hyphenated());
+    match db.get(&uuid) {
         Err(e) => Err(e),
         Ok(jdb::Jail { outer: None, .. }) => {
             println!("The vm is alredy stopped");
-            Err(NotFoundError::bx("VM is already stooped"))
+            Err(GenericError::bx("VM is already stooped"))
         }
         Ok(jail) => {
             println!("Stopping jail {}", uuid);
@@ -331,11 +336,11 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     };
     let mut dataset = conf.settings.pool.clone();
     dataset.push('/');
-    dataset.push_str(jail.image_uuid.clone().as_str());
+    dataset.push_str(jail.image_uuid.hyphenated().to_string().as_str());
 
     struct CreateState<'a> {
         conf: &'a Config,
-        uuid: String,
+        uuid: Uuid,
         dataset: String,
         config: JailConfig,
         entry: Option<IdxEntry>,
@@ -375,7 +380,7 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
         crit!("Rolling back insert");
         match JDB::open(state.conf) {
             Ok(mut db) => {
-                let _ = db.remove(state.uuid.as_str());
+                let _ = db.remove(&state.uuid);
             }
             Err(_error) => (),
         };
@@ -383,7 +388,10 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     };
 
     fn snap_up(state: CreateState) -> Result<CreateState, Failure<CreateState>> {
-        match zfs::snapshot(state.dataset.as_str(), state.uuid.as_str()) {
+        match zfs::snapshot(
+            state.dataset.as_str(),
+            state.uuid.hyphenated().to_string().as_str(),
+        ) {
             Ok(snap) => Ok(CreateState {
                 conf: state.conf,
                 uuid: state.uuid,
@@ -457,9 +465,10 @@ fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 
 fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let mut db = JDB::open(conf)?;
-    let uuid = value_t!(matches, "uuid", String).unwrap();
-    debug!("deleteing jail {}", uuid);
-    let res = match db.get(uuid.as_str()) {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    debug!("deleteing jail {}", uuid.hyphenated());
+    let res = match db.get(&uuid) {
         Ok(jail) => {
             if jail.outer.is_some() {
                 println!("Stopping jail {}", uuid);
@@ -482,6 +491,6 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
         }
         Err(e) => Err(e),
     };
-    db.remove(uuid.as_str())?;
+    db.remove(&uuid)?;
     res
 }

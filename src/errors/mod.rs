@@ -2,6 +2,7 @@
 
 use std::error::Error;
 use std::fmt;
+use uuid::Uuid;
 
 
 /// Validation errors
@@ -102,23 +103,23 @@ impl Error for GenericError {
 /// Conflict error when a uuid is re-used
 #[derive(Debug)]
 pub struct ConflictError {
-    uuid: String,
+    uuid: Uuid,
 }
 
 impl ConflictError {
     /// Initialize a new conflict error
-    pub fn new(uuid: &str) -> ConflictError {
-        ConflictError { uuid: String::from(uuid) }
+    pub fn new(uuid: &Uuid) -> ConflictError {
+        ConflictError { uuid: uuid.clone() }
     }
     /// Initialize a new conflict error in side a box
-    pub fn bx(uuid: &str) -> Box<Error> {
+    pub fn bx(uuid: &Uuid) -> Box<Error> {
         Box::new(ConflictError::new(uuid))
     }
 }
 
 impl fmt::Display for ConflictError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Duplicated UUID: {}", self.uuid)
+        write!(f, "Duplicated UUID: {}", self.uuid.hyphenated())
     }
 }
 
@@ -131,22 +132,22 @@ impl Error for ConflictError {
 /// Conflict error when a uuid is not found
 #[derive(Debug)]
 pub struct NotFoundError {
-    uuid: String,
+    uuid: Uuid,
 }
 impl NotFoundError {
     /// Initialize a new conflict error
-    pub fn new(uuid: &str) -> NotFoundError {
-        NotFoundError { uuid: String::from(uuid) }
+    pub fn new(uuid: &Uuid) -> NotFoundError {
+        NotFoundError { uuid: uuid.clone() }
     }
     /// Initialize a new conflict error in side a box
-    pub fn bx(uuid: &str) -> Box<Error> {
+    pub fn bx(uuid: &Uuid) -> Box<Error> {
         Box::new(NotFoundError::new(uuid))
     }
 }
 
 impl fmt::Display for NotFoundError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "UUID not found: {}", self.uuid)
+        write!(f, "UUID not found: {}", self.uuid.hyphenated())
     }
 }
 

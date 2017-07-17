@@ -55,7 +55,7 @@ pub struct IFace {
 impl NIC {
     /// Creates the related interface
     #[cfg(target_os = "freebsd")]
-    pub fn get_iface(&self, config: &Config, uuid: &str) -> Result<IFace, Box<Error>> {
+    pub fn get_iface(&self, config: &Config, uuid: &Uuid) -> Result<IFace, Box<Error>> {
         let output = Command::new(IFCONFIG)
             .args(&["epair", "create", "up"])
             .output()
@@ -128,7 +128,7 @@ impl NIC {
     }
     /// Creates the related interface
     #[cfg(not(target_os = "freebsd"))]
-    pub fn get_iface(&self, _config: &Config, _uuid: &str) -> Result<IFace, Box<Error>> {
+    pub fn get_iface(&self, _config: &Config, _uuid: &Uuid) -> Result<IFace, Box<Error>> {
         let epair = "epair0";
         let script = if self.vlan.is_some() {
             // This may seem stupid but freebsd can't create a vlan interface
@@ -169,9 +169,9 @@ impl NIC {
 pub struct JailConfig {
     /// UUID of the jail
     #[serde(default = "new_uuid")]
-    pub uuid: String,
+    pub uuid: Uuid,
     /// UUID of the imaage
-    pub image_uuid: String,
+    pub image_uuid: Uuid,
     /// readable alias for the jail
     pub alias: String,
     /// hostname of the jail
@@ -209,7 +209,6 @@ lazy_static! {
   static ref INTERFACE_RE: Regex = Regex::new("^[a-zA-Z]{1,4}[0-9]{0,3}$").unwrap();
   static ref IP_RE: Regex = Regex::new("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$").unwrap();
   static ref MAC_RE: Regex = Regex::new("^[a-fA-F0-9]{1,2}([:][a-fA-F0-9]{1,2}){5}$").unwrap();
-  static ref UUID_RE: Regex = Regex::new("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$").unwrap();
 }
 
 impl JailConfig {
@@ -248,12 +247,6 @@ impl JailConfig {
         }
         if !ALIAS_RE.is_match(self.alias.as_str()) {
             errors.push(ValidationError::new("alias", "Invalid alias"))
-        }
-        if !UUID_RE.is_match(self.uuid.as_str()) {
-            errors.push(ValidationError::new("uuid", "Invalid uuid"))
-        }
-        if !UUID_RE.is_match(self.image_uuid.as_str()) {
-            errors.push(ValidationError::new("image_uuid", "Invalid image_uuid"))
         }
         let mut i = 0;
         for nic in self.nics.clone() {
@@ -309,7 +302,7 @@ impl JailConfig {
         let mut res = Vec::new();
         let uuid = self.uuid.clone();
         let mut base = String::from("jail:");
-        base.push_str(uuid.as_str());
+        base.push_str(uuid.hyphenated().to_string().as_str());
 
         res.push(String::from("-a"));
 
@@ -359,8 +352,8 @@ fn dflt_max_lwp() -> u64 {
     2000
 }
 
-fn new_uuid() -> String {
-    Uuid::new_v4().hyphenated().to_string()
+fn new_uuid() -> Uuid {
+    Uuid::new_v4()
 }
 
 fn empty_nics() -> Vec<NIC> {
