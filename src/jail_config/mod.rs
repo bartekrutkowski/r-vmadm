@@ -32,6 +32,8 @@ pub struct NIC {
     gateway: String,
     #[serde(default = "dflt_false")]
     primary: bool,
+    mtu: Option<u32>,
+    network_uuid: Option<Uuid>,
 }
 
 fn dflt_false() -> bool {
@@ -201,6 +203,26 @@ pub struct JailConfig {
     /// maximum number of porocesses (maxproc)
     #[serde(default = "dflt_max_lwp")]
     pub max_lwps: u64,
+
+    // Metadata fields w/o effect on vmadm at the moment
+    archive_on_delete: Option<bool>,
+    billing_id: Option<Uuid>,
+    do_not_inventory: Option<bool>,
+    // Currently has no effect
+    #[serde(default = "dflt_dns_domain")]
+    dns_domain: String,
+    // currently no effect
+    indestructible_delegated: Option<bool>,
+    // currenlty no effect
+    indestructible_zoneroot: Option<bool>,
+    owner_uuid: Option<Uuid>,
+    package_name: Option<String>,
+    package_version: Option<String>,
+     // TODO:
+                                  // customer_metadata: KV
+                                  // internal_metadata: KV
+                                  // internal_metadata_namespaces: Vec<String>
+                                  // zfs_data_compression
 }
 
 lazy_static! {
@@ -350,6 +372,10 @@ impl JailConfig {
 
 fn dflt_max_lwp() -> u64 {
     2000
+}
+
+fn dflt_dns_domain() -> String {
+    String::from("local")
 }
 
 fn new_uuid() -> Uuid {
