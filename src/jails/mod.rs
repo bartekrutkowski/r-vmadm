@@ -122,7 +122,7 @@ fn start_jail(uuid: &Uuid, args: Vec<String>) -> Result<u64, Box<Error>> {
         let id: u64 = first.trim().parse().unwrap();
         Ok(id)
     } else {
-        crit!("Failed to start jail"; "vm" => uuid);
+        crit!("Failed to start jail"; "vm" => uuid.hyphenated().to_string().as_str());
         Err(GenericError::bx(reply.as_str()))
     }
 }
