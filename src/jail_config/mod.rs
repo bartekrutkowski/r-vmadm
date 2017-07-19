@@ -59,7 +59,7 @@ impl NIC {
     #[cfg(target_os = "freebsd")]
     pub fn get_iface(&self, config: &Config, uuid: &Uuid) -> Result<IFace, Box<Error>> {
         let output = Command::new(IFCONFIG)
-            .args(&["epair", "create", "up"])„
+            .args(&["epair", "create", "up"])
             .output()
             .expect("failed ifconfig");
         if !output.status.success() {
