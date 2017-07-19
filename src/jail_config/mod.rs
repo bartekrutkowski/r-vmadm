@@ -114,7 +114,7 @@ impl NIC {
             script.push_str(route.as_str())
         }
         let mut desc = String::from("VNic from jail ");
-        desc.push_str(uuid);
+        desc.push_str(uuid.hyphenated().to_string().as_str());
         let output = Command::new(IFCONFIG)
             .args(&[epaira, "description", desc.as_str()])
             .output()

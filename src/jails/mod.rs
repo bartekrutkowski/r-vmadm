@@ -107,7 +107,7 @@ fn start_jail(_uuid: &Uuid, _args: Vec<String>) -> Result<u64, Box<Error>> {
 }
 
 #[cfg(target_os = "freebsd")]
-fn start_jail(&uuid: Uuid, args: Vec<String>) -> Result<u64, Box<Error>> {
+fn start_jail(uuid: &Uuid, args: Vec<String>) -> Result<u64, Box<Error>> {
     let output = Command::new(JAIL).args(args.clone()).output().expect(
         "jail failed",
     );
@@ -292,7 +292,7 @@ pub fn list() -> Result<HashMap<String, JailOSEntry>, Box<Error>> {
 
     for line in reply.split('\n').filter(|x| *x != "") {
         let entry = deconstruct_entry(line)?;
-        res.insert(entry.uuid.hyphenated().to_string(), entry);
+        res.insert(entry.uuid.clone(), entry);
         ()
     }
     Ok(res)
