@@ -59,7 +59,7 @@ impl NIC {
     #[cfg(target_os = "freebsd")]
     pub fn get_iface(&self, config: &Config, uuid: &Uuid) -> Result<IFace, Box<Error>> {
         let output = Command::new(IFCONFIG)
-            .args(&["epair", "create", "up"])
+            .args(&["epair", "create", "up"])„
             .output()
             .expect("failed ifconfig");
         if !output.status.success() {
@@ -169,6 +169,9 @@ impl NIC {
 /// Jail configuration values
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JailConfig {
+    /// UUID of the jail
+    #[serde(default = "dflt_brand")]
+    pub brand: String,
     /// UUID of the jail
     #[serde(default = "new_uuid")]
     pub uuid: Uuid,
@@ -384,6 +387,10 @@ fn new_uuid() -> Uuid {
 
 fn empty_nics() -> Vec<NIC> {
     Vec::new()
+}
+
+fn dflt_brand() -> String {
+    String::from("jail")
 }
 
 fn new_mac() -> String {
