@@ -130,7 +130,7 @@ impl<'a> JDB<'a> {
                 let e = IdxEntry {
                     version: 0,
                     uuid: config.uuid.clone(),
-                    state: String::from("installed"),
+                    state: String::from("stopped"),
                     jail_type: String::from("base"),
                     root: root.clone(),
                 };
@@ -141,7 +141,7 @@ impl<'a> JDB<'a> {
                 Ok(IdxEntry {
                     version: 0,
                     uuid: config.uuid.clone(),
-                    state: String::from("installed"),
+                    state: String::from("stopped"),
                     jail_type: String::from("base"),
                     root: root.clone(),
                 })
