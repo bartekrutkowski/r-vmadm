@@ -153,6 +153,30 @@ impl<'a> JDB<'a> {
         }
     }
 
+    /// Inserts a config into the database, writes the config file
+    /// and adds it to the index.
+    pub fn update(self: &'a mut JDB<'a>, config: JailConfig) -> Result<i32, Box<Error>> {
+        debug!("Updating vm"; "vm" => &config.uuid.hyphenated().to_string());
+        match self.find(&config.uuid) {
+            None => {
+                warn!("Missing entry {}", config.uuid; "vm" => &config.uuid.hyphenated().to_string());
+                Err(NotFoundError::bx(&config.uuid))
+            }
+
+            Some(_) => {
+                let mut path = PathBuf::from(self.config.settings.conf_dir.as_str());
+                path.push(config.uuid.hyphenated().to_string());
+                path.set_extension("json");
+                debug!("Updating config file"; "file" => path.to_str(), "vm" => &config.uuid.hyphenated().to_string());
+                let file = File::create(path)?;
+                let mut root = String::from(self.config.settings.pool.as_str());
+                serde_json::to_writer(file, &config)?;
+                // This is ugly but I don't know any better.
+                Ok(0)
+            }
+        }
+    }
+
     /// Removes a jail with a given uuid from the index and removes it's
     /// config file.
     pub fn remove(self: &'a mut JDB<'a>, uuid: &Uuid) -> Result<usize, Box<Error>> {

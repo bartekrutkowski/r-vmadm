@@ -55,6 +55,8 @@ mod zfs;
 pub mod jails;
 
 pub mod jail_config;
+mod update;
+
 use jail_config::JailConfig;
 
 pub mod jdb;
@@ -311,16 +313,35 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     }
 }
 
-fn update(_conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
-    Ok(0)
-}
-
 fn list(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     let db = JDB::open(conf)?;
     db.print(
         matches.is_present("headerless"),
         matches.is_present("parsable"),
     )
+}
+
+fn update(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let mut db = JDB::open(conf)?;
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    let update = match value_t!(matches, "file", String) {
+        Err(_) => {
+            debug!("Reading from STDIN");
+            update::JailUpdate::from_reader(io::stdin())?
+        }
+        Ok(file) => {
+            debug!("Reading from file"; "file" => file.clone() );
+            update::JailUpdate::from_reader(File::open(file)?)?
+        }
+    };
+    match db.get(&uuid) {
+        Err(e) => Err(e),
+        Ok(jdb::Jail { config: c, .. }) => {
+            let c = update.apply(c);
+            db.update(c)
+        }
+    }
 }
 
 fn create(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {

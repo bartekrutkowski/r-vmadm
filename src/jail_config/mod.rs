@@ -210,27 +210,36 @@ pub struct JailConfig {
     pub max_lwps: u64,
 
     // Metadata fields w/o effect on vmadm at the moment
+    /// Should be archived when deleted
     #[serde(skip_serializing_if = "Option::is_none")]
-    archive_on_delete: Option<bool>,
+    pub archive_on_delete: Option<bool>,
+    /// Bulling ID for the jail
     #[serde(skip_serializing_if = "Option::is_none")]
-    billing_id: Option<Uuid>,
+    pub billing_id: Option<Uuid>,
+    /// This jail should not be be part of inventories
     #[serde(skip_serializing_if = "Option::is_none")]
-    do_not_inventory: Option<bool>,
+    pub do_not_inventory: Option<bool>,
     // Currently has no effect
+    /// dns domain for the jail
     #[serde(default = "dflt_dns_domain")]
-    dns_domain: String,
+    pub dns_domain: String,
     // currently no effect
+    /// Prevent the jail delegate to be destroyed
     #[serde(skip_serializing_if = "Option::is_none")]
     indestructible_delegated: Option<bool>,
     // currenlty no effect
+    /// Prevent the jail root to be destroyed
     #[serde(skip_serializing_if = "Option::is_none")]
-    indestructible_zoneroot: Option<bool>,
+    pub indestructible_zoneroot: Option<bool>,
+    /// UUID of the owner of the jail
     #[serde(skip_serializing_if = "Option::is_none")]
-    owner_uuid: Option<Uuid>,
+    pub owner_uuid: Option<Uuid>,
+    /// Name of the package used for this jail
     #[serde(skip_serializing_if = "Option::is_none")]
-    package_name: Option<String>,
+    pub package_name: Option<String>,
+    /// Version of the package used for this jail
     #[serde(skip_serializing_if = "Option::is_none")]
-    package_version: Option<String>,
+    pub package_version: Option<String>,
      // TODO:
                                   // customer_metadata: KV
                                   // internal_metadata: KV
