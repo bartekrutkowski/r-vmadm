@@ -25,6 +25,7 @@ pub struct NIC {
     pub interface: String,
     #[serde(default = "new_mac")]
     mac: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     vlan: Option<u16>,
     nic_tag: String,
     ip: String,
@@ -32,12 +33,10 @@ pub struct NIC {
     gateway: String,
     #[serde(default = "dflt_false")]
     primary: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     mtu: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     network_uuid: Option<Uuid>,
-}
-
-fn dflt_false() -> bool {
-    false
 }
 
 #[cfg(target_os = "freebsd")]
@@ -183,7 +182,8 @@ pub struct JailConfig {
     pub hostname: String,
 
     /// weather to start this jail on --startup
-    pub autostart: Option<bool>,
+    #[serde(default = "dflt_false")]
+    pub autostart: bool,
 
     // Resources
     /// max physical memory in MB (memoryuse)
@@ -194,9 +194,11 @@ pub struct JailConfig {
     quota: u64,
 
     /// SysV shared memory size, in bytes (shmsize)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_shm_memory: Option<u64>,
 
     /// locked memory (memorylocked)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_locked_memory: Option<u64>,
 
     /// networks
@@ -208,18 +210,26 @@ pub struct JailConfig {
     pub max_lwps: u64,
 
     // Metadata fields w/o effect on vmadm at the moment
+    #[serde(skip_serializing_if = "Option::is_none")]
     archive_on_delete: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     billing_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     do_not_inventory: Option<bool>,
     // Currently has no effect
     #[serde(default = "dflt_dns_domain")]
     dns_domain: String,
     // currently no effect
+    #[serde(skip_serializing_if = "Option::is_none")]
     indestructible_delegated: Option<bool>,
     // currenlty no effect
+    #[serde(skip_serializing_if = "Option::is_none")]
     indestructible_zoneroot: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     owner_uuid: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     package_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     package_version: Option<String>,
      // TODO:
                                   // customer_metadata: KV
@@ -255,9 +265,6 @@ impl JailConfig {
         }
         if conf.max_locked_memory.is_none() {
             conf.max_locked_memory = Some(max_physical_memory);
-        }
-        if conf.autostart.is_none() {
-            conf.autostart = Some(false);
         }
         match conf.errors(config) {
             Some(errors) => Err(ValidationErrors::bx(errors)),
@@ -371,6 +378,10 @@ impl JailConfig {
 
         res
     }
+}
+
+fn dflt_false() -> bool {
+    false
 }
 
 fn dflt_max_lwp() -> u64 {
