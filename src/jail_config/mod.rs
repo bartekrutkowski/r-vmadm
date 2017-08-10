@@ -39,6 +39,21 @@ pub struct NIC {
     network_uuid: Option<Uuid>,
 }
 
+impl PartialEq for NIC {
+    fn eq(&self, other: &NIC) -> bool {
+        self.interface == other.interface &&
+            self.mac == other.mac &&
+            self.vlan == other.vlan &&
+            self.nic_tag == other.nic_tag &&
+            self.ip == self.ip &&
+            self.netmask == other.netmask &&
+            self.gateway == other.gateway &&
+            self.primary == other.primary &&
+            self.mtu == other.mtu &&
+            self.network_uuid == other.network_uuid
+    }
+}
+
 #[cfg(target_os = "freebsd")]
 static IFCONFIG: &'static str = "/sbin/ifconfig";
 
@@ -191,7 +206,7 @@ pub struct JailConfig {
     /// mac cpu usage 100 = 1 core (pcpu)
     pub cpu_cap: u64,
     /// max quota (zfs quota)
-    quota: u64,
+    pub quota: u64,
 
     /// SysV shared memory size, in bytes (shmsize)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -226,7 +241,7 @@ pub struct JailConfig {
     // currently no effect
     /// Prevent the jail delegate to be destroyed
     #[serde(skip_serializing_if = "Option::is_none")]
-    indestructible_delegated: Option<bool>,
+    pub indestructible_delegated: Option<bool>,
     // currenlty no effect
     /// Prevent the jail root to be destroyed
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -240,11 +255,38 @@ pub struct JailConfig {
     /// Version of the package used for this jail
     #[serde(skip_serializing_if = "Option::is_none")]
     pub package_version: Option<String>,
-     // TODO:
-                                  // customer_metadata: KV
-                                  // internal_metadata: KV
-                                  // internal_metadata_namespaces: Vec<String>
-                                  // zfs_data_compression
+    // TODO:
+    // customer_metadata: KV
+    // internal_metadata: KV
+    // internal_metadata_namespaces: Vec<String>
+    // zfs_data_compression
+}
+
+impl PartialEq for JailConfig {
+    fn eq(&self, other: &JailConfig) -> bool {
+        self.brand == other.brand &&
+            self.uuid == other.uuid &&
+            self.image_uuid == other.image_uuid &&
+            self.alias == other.alias &&
+            self.hostname == other.hostname &&
+            self.autostart == other.autostart &&
+            self.max_physical_memory == other.max_physical_memory &&
+            self.cpu_cap == other.cpu_cap &&
+            self.quota == other.quota &&
+            self.max_shm_memory == other.max_shm_memory &&
+            self.max_locked_memory == other.max_locked_memory &&
+            self.nics == other.nics &&
+            self.max_lwps == other.max_lwps &&
+            self.archive_on_delete == other.archive_on_delete &&
+            self.billing_id == other.billing_id &&
+            self.do_not_inventory == other.do_not_inventory &&
+            self.dns_domain == other.dns_domain &&
+            self.indestructible_delegated == other.indestructible_delegated &&
+            self.indestructible_zoneroot == other.indestructible_zoneroot &&
+            self.owner_uuid == other.owner_uuid &&
+            self.package_name == other.package_name &&
+            self.package_version == other.package_version
+    }
 }
 
 lazy_static! {

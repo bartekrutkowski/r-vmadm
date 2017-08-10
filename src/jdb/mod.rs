@@ -15,6 +15,7 @@ use prettytable::cell::Cell;
 use uuid::Uuid;
 use serde_json;
 
+use jails::Jail;
 use jails;
 use jail_config::JailConfig;
 
@@ -33,17 +34,7 @@ pub struct IdxEntry {
     jail_type: String,
 }
 
-/// Jail config
-pub struct Jail<'a> {
-    /// Index refference
-    pub idx: &'a IdxEntry,
-    /// Jail configuration
-    pub config: JailConfig,
-    /// Record from the OS
-    pub inner: Option<&'a jails::JailOSEntry>,
-    /// Record from the outer OS jail
-    pub outer: Option<&'a jails::JailOSEntry>,
-}
+
 
 impl PartialEq for IdxEntry {
     fn eq(&self, other: &IdxEntry) -> bool {
@@ -169,7 +160,6 @@ impl<'a> JDB<'a> {
                 path.set_extension("json");
                 debug!("Updating config file"; "file" => path.to_str(), "vm" => &config.uuid.hyphenated().to_string());
                 let file = File::create(path)?;
-                let mut root = String::from(self.config.settings.pool.as_str());
                 serde_json::to_writer(file, &config)?;
                 // This is ugly but I don't know any better.
                 Ok(0)

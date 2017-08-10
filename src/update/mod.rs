@@ -1,8 +1,6 @@
 //! Update for a jail
-use config::Config;
 use jail_config::JailConfig;
 use std::error::Error;
-use std::fs::File;
 use std::io::Read;
 use serde_json;
 use uuid::Uuid;
@@ -64,12 +62,6 @@ macro_rules! update_option {
     );
 }
 impl JailUpdate {
-    /// Reads a new config from a file
-    pub fn from_file(config_path: &str) -> Result<Self, Box<Error>> {
-        let config_file = File::open(config_path)?;
-        JailUpdate::from_reader(config_file)
-    }
-
     /// Reads the config from a reader
     pub fn from_reader<R>(reader: R) -> Result<Self, Box<Error>>
     where
@@ -77,6 +69,25 @@ impl JailUpdate {
     {
         let update: JailUpdate = serde_json::from_reader(reader)?;
         return Ok(update);
+    }
+    pub fn empty() -> Self {
+        JailUpdate {
+            alias: None,
+            hostname: None,
+            autostart: None,
+            max_physical_memory: None,
+            cpu_cap: None,
+            max_shm_memory: None,
+            max_locked_memory: None,
+            max_lwps: None,
+            archive_on_delete: None,
+            billing_id: None,
+            do_not_inventory: None,
+            dns_domain: None,
+            owner_uuid: None,
+            package_name: None,
+            package_version: None,
+        }
     }
     pub fn apply(&self, config: JailConfig) -> JailConfig {
         let mut c = config.clone();
@@ -102,4 +113,157 @@ impl JailUpdate {
         );
         return c;
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use jail_config::JailConfig;
+    use update::*;
+    use uuid::Uuid;
+
+    fn conf() -> JailConfig {
+        JailConfig{
+            brand: String::from("jail"),
+            uuid: Uuid::nil(),
+            image_uuid: Uuid::nil(),
+            alias: String::from("test-alias"),
+            hostname: String::from("test-hostname"),
+            autostart: true,
+            max_physical_memory: 1024,
+            cpu_cap: 100,
+            quota: 5,
+            max_shm_memory: None,
+            max_locked_memory: None,
+            nics: vec![],
+            max_lwps: 2000,
+            archive_on_delete: None,
+            billing_id: None,
+            do_not_inventory: None,
+            dns_domain: String::from("local"),
+            indestructible_delegated: None,
+            indestructible_zoneroot: None,
+            owner_uuid: None,
+            package_name: None,
+            package_version: None,
+        }
+    }
+
+    fn uuid() -> Uuid {
+        let bytes = [1, 2, 3, 4, 5, 6, 7, 8,
+                     9, 10, 11, 12, 13, 14, 15, 16];
+        Uuid::from_bytes(&bytes).unwrap()
+    }
+    #[test]
+    fn empty() {
+        let conf = conf();
+        let update = JailUpdate::empty();
+        let conf1 = update.apply(conf.clone());
+        assert_eq!(conf, conf1);
+    }
+    #[test]
+    fn alias() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let alias = String::from("changed");
+        update.alias = Some(alias.clone());
+        assert_eq!(alias, update.apply(conf).alias);
+    }
+    #[test]
+    fn hostname() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let hostname = String::from("changed");
+        update.hostname = Some(hostname.clone());
+        assert_eq!(hostname, update.apply(conf).hostname);
+    }
+    #[test]
+    fn autostart() {
+        let conf = conf();
+        assert_eq!(true, conf.autostart);
+        let mut update = JailUpdate::empty();
+        update.autostart = Some(false);
+        assert_eq!(false, update.apply(conf).autostart);
+    }
+    #[test]
+    fn max_physical_memory() {
+        let conf = conf();
+        assert_eq!(1024, conf.max_physical_memory);
+        let mut update = JailUpdate::empty();
+        update.max_physical_memory = Some(42);
+        assert_eq!(42, update.apply(conf).max_physical_memory);
+    }
+    #[test]
+    fn max_locked_memory() {
+        let conf = conf();
+        assert_eq!(None, conf.max_locked_memory);
+        let mut update = JailUpdate::empty();
+        update.max_locked_memory = Some(42);
+        assert_eq!(42, update.apply(conf).max_locked_memory.unwrap());
+    }
+    #[test]
+    fn max_lwps() {
+        let conf = conf();
+        assert_eq!(2000, conf.max_lwps);
+        let mut update = JailUpdate::empty();
+        update.max_lwps = Some(42);
+        assert_eq!(42, update.apply(conf).max_lwps);
+    }
+    #[test]
+    fn archive_on_delete() {
+        let conf = conf();
+        assert_eq!(None, conf.archive_on_delete);
+        let mut update = JailUpdate::empty();
+        update.archive_on_delete = Some(true);
+        assert_eq!(true, update.apply(conf).archive_on_delete.unwrap());
+    }
+    #[test]
+    fn billing_id() {
+        let conf = conf();
+        assert_eq!(None, conf.billing_id);
+        let mut update = JailUpdate::empty();
+        update.billing_id = Some(uuid());
+        assert_eq!(uuid(), update.apply(conf).billing_id.unwrap());
+    }
+    #[test]
+    fn no_not_inventory() {
+        let conf = conf();
+        assert_eq!(None, conf.do_not_inventory);
+        let mut update = JailUpdate::empty();
+        update.do_not_inventory = Some(true);
+        assert_eq!(true, update.apply(conf).do_not_inventory.unwrap());
+    }
+    #[test]
+    fn dns_domain() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let dns_domain = String::from("changed");
+        update.dns_domain = Some(dns_domain.clone());
+        assert_eq!(dns_domain, update.apply(conf).dns_domain);
+    }
+    #[test]
+    fn owner_uuid() {
+        let conf = conf();
+        assert_eq!(None, conf.owner_uuid);
+        let mut update = JailUpdate::empty();
+        update.owner_uuid = Some(uuid());
+        assert_eq!(uuid(), update.apply(conf).owner_uuid.unwrap());
+    }
+    #[test]
+    fn package_name() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let package_name = String::from("changed");
+        update.package_name = Some(package_name.clone());
+        assert_eq!(package_name, update.apply(conf).package_name.unwrap());
+    }
+    #[test]
+    fn package_version() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let package_version = String::from("changed");
+        update.package_version = Some(package_version.clone());
+        assert_eq!(package_version, update.apply(conf).package_version.unwrap());
+    }
+
 }

@@ -53,6 +53,7 @@ use std::process::Command;
 mod zfs;
 
 pub mod jails;
+use jails::Jail;
 
 pub mod jail_config;
 mod update;
@@ -67,7 +68,6 @@ use config::Config;
 
 pub mod errors;
 use errors::GenericError;
-
 
 #[cfg(target_os = "freebsd")]
 static JEXEC: &'static str = "jexec";
@@ -211,13 +211,13 @@ fn start(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     debug!("Starting jail {}", uuid.hyphenated());
     match db.get(&uuid) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { outer: Some(_), .. }) => {
+        Ok(Jail { outer: Some(_), .. }) => {
             println!("The vm is alredy started");
             Err(GenericError::bx("VM is already started"))
         }
         Ok(jail) => {
             println!("Starting jail {}", jail.idx.uuid);
-            jails::start(conf, &jail)
+            jail.start(conf)
         }
     }
 }
@@ -229,14 +229,14 @@ fn reboot(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     debug!("deleteing jail {}", uuid.hyphenated());
     match db.get(&uuid) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { outer: None, .. }) => {
+        Ok(Jail { outer: None, .. }) => {
             println!("The vm is not running");
             Err(GenericError::bx("The vm is not running"))
         }
         Ok(jail) => {
             println!("Rebooting jail {}", uuid);
-            jails::stop(&jail)?;
-            jails::start(conf, &jail)
+            jail.stop()?;
+            jail.start(conf)
         }
     }
 }
@@ -247,7 +247,7 @@ fn get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     debug!("Starting jail {}", uuid.hyphenated().to_string());
     match db.get(&uuid) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { config: conf, .. }) => {
+        Ok(Jail { config: conf, .. }) => {
             let j = serde_json::to_string_pretty(&conf)?;
             println!("{}\n", j);
             Ok(0)
@@ -276,11 +276,11 @@ fn console(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
     debug!("Starting jail {}", uuid.hyphenated());
     match db.get(&uuid) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { inner: None, .. }) => {
+        Ok(Jail { inner: None, .. }) => {
             println!("The vm is not running");
             Err(GenericError::bx("VM is not running"))
         }
-        Ok(jdb::Jail { inner: Some(jid), .. }) => {
+        Ok(Jail { inner: Some(jid), .. }) => {
             let mut child = Command::new(JEXEC)
                 .args(&[jid.id.to_string().as_str(), "/bin/csh"])
                 .spawn()
@@ -302,13 +302,13 @@ fn stop(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     debug!("stopping jail {}", uuid.hyphenated());
     match db.get(&uuid) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { outer: None, .. }) => {
+        Ok(Jail { outer: None, .. }) => {
             println!("The vm is alredy stopped");
             Err(GenericError::bx("VM is already stooped"))
         }
         Ok(jail) => {
             println!("Stopping jail {}", uuid);
-            jails::stop(&jail)
+            jail.stop()
         }
     }
 }
@@ -337,7 +337,7 @@ fn update(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     };
     match db.get(&uuid) {
         Err(e) => Err(e),
-        Ok(jdb::Jail { config: c, .. }) => {
+        Ok(Jail { config: c, .. }) => {
             let c = update.apply(c);
             db.update(c)
         }
@@ -493,7 +493,7 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
         Ok(jail) => {
             if jail.outer.is_some() {
                 println!("Stopping jail {}", uuid);
-                jails::stop(&jail)?;
+                jail.stop()?;
             };
             let origin = zfs::origin(jail.idx.root.as_str());
             match zfs::destroy(jail.idx.root.as_str()) {
