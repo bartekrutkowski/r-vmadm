@@ -1,9 +1,16 @@
 //! Update for a jail
-use jail_config::JailConfig;
+use jail_config;
+use jail_config::{JailConfig, NIC};
 use std::error::Error;
 use std::io::Read;
 use serde_json;
 use uuid::Uuid;
+
+
+/// update the nics
+#[derive(Debug, Deserialize, Clone)]
+struct NICUpdate {
+}
 
 /// Jail update
 #[derive(Debug, Deserialize, Clone)]
@@ -39,7 +46,15 @@ pub struct JailUpdate {
     owner_uuid: Option<Uuid>,
     package_name: Option<String>,
     package_version: Option<String>,
+    #[serde(default = "jail_config::empty_nics")]
+    add_nics: Vec<NIC>,
+    #[serde(default = "empty_macs")]
+    remove_nics: Vec<String>,
+    #[serde(default = "empty_nic_update")]
+    update_nics: Vec<NICUpdate>,
+
 }
+
 
 macro_rules! update {
     ( $src:ident, $target:ident; $($field:ident),+)  => (
@@ -87,6 +102,10 @@ impl JailUpdate {
             owner_uuid: None,
             package_name: None,
             package_version: None,
+            add_nics: vec![],
+            remove_nics: vec![],
+            update_nics: vec![],
+
         }
     }
     pub fn apply(&self, config: JailConfig) -> JailConfig {
@@ -111,8 +130,22 @@ impl JailUpdate {
             package_name,
             package_version
         );
+
+
+        c.nics.retain(|nic| !self.remove_nics.contains(&nic.mac));
+
         return c;
     }
+}
+
+
+
+fn empty_macs() -> Vec<String> {
+    Vec::new()
+}
+
+fn empty_nic_update() -> Vec<NICUpdate> {
+    Vec::new()
 }
 
 
@@ -121,6 +154,35 @@ mod tests {
     use jail_config::JailConfig;
     use update::*;
     use uuid::Uuid;
+
+    fn nic00() -> NIC {
+        NIC{
+            interface: String::from("net0"),
+            mac: String::from("00:00:00:00:00:00"),
+            vlan: None,
+            nic_tag: String::from("admin"),
+            ip: String::from("192.168.254.254"),
+            netmask: String::from("255.255.255.0"),
+            gateway: String::from("192.168.254.1"),
+            primary: true,
+            mtu: None,
+            network_uuid: None
+        }
+    }
+    fn nic01() -> NIC {
+        NIC{
+            interface: String::from("net0"),
+            mac: String::from("00:00:00:00:00:01"),
+            vlan: None,
+            nic_tag: String::from("admin"),
+            ip: String::from("192.168.254.253"),
+            netmask: String::from("255.255.255.0"),
+            gateway: String::from("192.168.254.1"),
+            primary: true,
+            mtu: None,
+            network_uuid: None
+        }
+    }
 
     fn conf() -> JailConfig {
         JailConfig{
@@ -135,7 +197,7 @@ mod tests {
             quota: 5,
             max_shm_memory: None,
             max_locked_memory: None,
-            nics: vec![],
+            nics: vec![nic00(), nic01()],
             max_lwps: 2000,
             archive_on_delete: None,
             billing_id: None,
@@ -266,4 +328,12 @@ mod tests {
         assert_eq!(package_version, update.apply(conf).package_version.unwrap());
     }
 
+    #[test]
+    fn remove_nics() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let mac = String::from("00:00:00:00:00:00");
+        update.remove_nics = vec![mac];
+        assert_eq!(vec![nic01()], update.apply(conf).nics);
+    }
 }

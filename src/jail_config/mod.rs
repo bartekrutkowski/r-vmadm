@@ -24,19 +24,19 @@ pub struct NIC {
     /// Interface name
     pub interface: String,
     #[serde(default = "new_mac")]
-    mac: String,
+    pub mac: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    vlan: Option<u16>,
-    nic_tag: String,
-    ip: String,
-    netmask: String,
-    gateway: String,
+    pub vlan: Option<u16>,
+    pub nic_tag: String,
+    pub ip: String,
+    pub netmask: String,
+    pub gateway: String,
     #[serde(default = "dflt_false")]
-    primary: bool,
+    pub primary: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    mtu: Option<u32>,
+    pub mtu: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    network_uuid: Option<Uuid>,
+    pub network_uuid: Option<Uuid>,
 }
 
 impl PartialEq for NIC {
@@ -447,7 +447,7 @@ fn new_uuid() -> Uuid {
     Uuid::new_v4()
 }
 
-fn empty_nics() -> Vec<NIC> {
+pub fn empty_nics() -> Vec<NIC> {
     Vec::new()
 }
 
@@ -457,9 +457,11 @@ fn dflt_brand() -> String {
 
 fn new_mac() -> String {
     let mut rng = thread_rng();
+    // the second half of the first ocet should be 02
+    // to indicate this is a locally administered mac
+    // address and not one assiged by a vendor
     format!(
-        "{:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
-        rng.gen::<u8>(),
+        "02:{:x}:{:x}:{:x}:{:x}:{:x}",
         rng.gen::<u8>(),
         rng.gen::<u8>(),
         rng.gen::<u8>(),
