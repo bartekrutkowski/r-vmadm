@@ -133,6 +133,9 @@ impl JailUpdate {
 
 
         c.nics.retain(|nic| !self.remove_nics.contains(&nic.mac));
+        for nic in self.add_nics.iter() {
+            c.nics.push(nic.clone());
+        }
 
         return c;
     }
@@ -176,6 +179,20 @@ mod tests {
             vlan: None,
             nic_tag: String::from("admin"),
             ip: String::from("192.168.254.253"),
+            netmask: String::from("255.255.255.0"),
+            gateway: String::from("192.168.254.1"),
+            primary: true,
+            mtu: None,
+            network_uuid: None
+        }
+    }
+    fn nic02() -> NIC {
+        NIC{
+            interface: String::from("net0"),
+            mac: String::from("00:00:00:00:00:02"),
+            vlan: None,
+            nic_tag: String::from("admin"),
+            ip: String::from("192.168.254.252"),
             netmask: String::from("255.255.255.0"),
             gateway: String::from("192.168.254.1"),
             primary: true,
@@ -335,5 +352,12 @@ mod tests {
         let mac = String::from("00:00:00:00:00:00");
         update.remove_nics = vec![mac];
         assert_eq!(vec![nic01()], update.apply(conf).nics);
+    }
+    #[test]
+    fn add_nics() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        update.add_nics = vec![nic02()];
+        assert_eq!(vec![nic00(), nic01(), nic02()], update.apply(conf).nics);
     }
 }
