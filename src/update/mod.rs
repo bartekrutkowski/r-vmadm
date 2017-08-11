@@ -7,9 +7,77 @@ use serde_json;
 use uuid::Uuid;
 
 
+macro_rules! update {
+    ( $src:ident, $target:ident; $($field:ident),+)  => (
+        $(
+            match $src.$field {
+                Some(ref value) => $target.$field = value.clone(),
+                _ => ()
+            }
+        )*
+    );
+}
+macro_rules! update_option {
+    ( $src:ident, $target:ident; $($field:ident),+)  => (
+        $(
+            match $src.$field {
+                Some(ref value) => $target.$field = Some(value.clone()),
+                _ => ()
+            }
+        )*
+    );
+}
+
+
 /// update the nics
 #[derive(Debug, Deserialize, Clone)]
 struct NICUpdate {
+    mac: String,
+    nic_tag: Option<String>,
+    ip: Option<String>,
+    gateway: Option<String>,
+    netmask: Option<String>,
+    vlan: Option<u16>,
+    primary: Option<bool>,
+    mtu: Option<u32>,
+    network_uuid: Option<Uuid>,
+}
+
+impl NICUpdate {
+    pub fn empty(mac: String) -> Self {
+        NICUpdate{
+            mac,
+            nic_tag: None,
+            ip: None,
+            gateway: None,
+            netmask: None,
+            vlan: None,
+            primary: None,
+            mtu: None,
+            network_uuid: None,
+        }
+    }
+    pub fn apply(&self, nic: NIC) -> NIC {
+
+        if nic.mac != self.mac {
+            return nic
+        };
+
+        let mut nic = nic.clone();
+        update!(self, nic;
+                nic_tag,
+                ip,
+                netmask,
+                gateway,
+                primary
+        );
+        update_option!(self, nic;
+                       vlan,
+                       mtu,
+                       network_uuid
+        );
+        return nic;
+    }
 }
 
 /// Jail update
@@ -55,27 +123,6 @@ pub struct JailUpdate {
 
 }
 
-
-macro_rules! update {
-    ( $src:ident, $target:ident; $($field:ident),+)  => (
-        $(
-            match $src.$field {
-                Some(ref value) => $target.$field = value.clone(),
-                _ => ()
-            }
-        )*
-    );
-}
-macro_rules! update_option {
-    ( $src:ident, $target:ident; $($field:ident),+)  => (
-        $(
-            match $src.$field {
-                Some(ref value) => $target.$field = Some(value.clone()),
-                _ => ()
-            }
-        )*
-    );
-}
 impl JailUpdate {
     /// Reads the config from a reader
     pub fn from_reader<R>(reader: R) -> Result<Self, Box<Error>>
@@ -118,7 +165,6 @@ impl JailUpdate {
             cpu_cap,
             max_lwps,
             dns_domain
-
         );
         update_option!(self, c;
             max_shm_memory,
@@ -135,6 +181,21 @@ impl JailUpdate {
         c.nics.retain(|nic| !self.remove_nics.contains(&nic.mac));
         for nic in self.add_nics.iter() {
             c.nics.push(nic.clone());
+        }
+        for update in self.update_nics.iter() {
+
+            c.nics = match update.primary {
+                Some(true) =>
+                    c.nics.iter().map(|nic| {
+                        let mut nic = nic.clone();
+                        nic.primary = false;
+                        update.apply(nic)
+                    }).collect(),
+                _ => c.nics.iter().map(|nic| update.apply(nic.clone())).collect()
+            };
+
+
+
         }
 
         return c;
@@ -181,7 +242,7 @@ mod tests {
             ip: String::from("192.168.254.253"),
             netmask: String::from("255.255.255.0"),
             gateway: String::from("192.168.254.1"),
-            primary: true,
+            primary: false,
             mtu: None,
             network_uuid: None
         }
@@ -195,7 +256,7 @@ mod tests {
             ip: String::from("192.168.254.252"),
             netmask: String::from("255.255.255.0"),
             gateway: String::from("192.168.254.1"),
-            primary: true,
+            primary: false,
             mtu: None,
             network_uuid: None
         }
@@ -360,4 +421,87 @@ mod tests {
         update.add_nics = vec![nic02()];
         assert_eq!(vec![nic00(), nic01(), nic02()], update.apply(conf).nics);
     }
+
+    #[test]
+    fn nics_change_primary() {
+        let conf = conf();
+        let mut update = JailUpdate::empty();
+        let mut nic_update = NICUpdate::empty(nic01().mac.clone());
+        nic_update.primary = Some(true);
+        update.update_nics = vec![nic_update];
+        let conf1 = update.apply(conf.clone());
+
+        assert_eq!(false, conf1.nics[0].primary);
+        assert_eq!(true, conf1.nics[1].primary);
+    }
+
+    // nic update tests
+
+    #[test]
+    fn nic_no_update_on_wrong_mac() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic02().mac.clone());
+        let nic_tag = String::from("changed");
+        update.nic_tag = Some(nic_tag.clone());
+        assert_eq!(nic.clone(), update.apply(nic));
+    }
+
+    #[test]
+    fn nic_tag() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let nic_tag = String::from("changed");
+        update.nic_tag = Some(nic_tag.clone());
+        assert_eq!(nic_tag, update.apply(nic).nic_tag);
+    }
+
+    #[test]
+    fn nic_ip() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let ip = String::from("192.168.1.254");
+        update.ip = Some(ip.clone());
+        assert_eq!(ip, update.apply(nic).ip);
+    }
+    #[test]
+    fn nic_gateway() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let gateway = String::from("192.168.1.1");
+        update.gateway = Some(gateway.clone());
+        assert_eq!(gateway, update.apply(nic).gateway);
+    }
+    #[test]
+    fn nic_netmask() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let netmask = String::from("255.255.0.0");
+        update.netmask = Some(netmask.clone());
+        assert_eq!(netmask, update.apply(nic).netmask);
+    }
+    #[test]
+    fn nic_vlan() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let vlan = 42;
+        update.vlan = Some(vlan);
+        assert_eq!(vlan, update.apply(nic).vlan.unwrap());
+    }
+    #[test]
+    fn nic_primary() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let primary = true;
+        update.primary = Some(primary);
+        assert_eq!(primary, update.apply(nic).primary);
+    }
+    #[test]
+    fn nic_mtu() {
+        let nic = nic01();
+        let mut update = NICUpdate::empty(nic.mac.clone());
+        let mtu = 42;
+        update.mtu = Some(mtu);
+        assert_eq!(mtu, update.apply(nic).mtu.unwrap());
+    }
+
 }
