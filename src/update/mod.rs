@@ -1,5 +1,4 @@
 //! Update for a jail
-use jail_config;
 use jail_config::{JailConfig, NIC};
 use std::error::Error;
 use std::io::Read;
@@ -44,6 +43,7 @@ struct NICUpdate {
 }
 
 impl NICUpdate {
+    #[cfg(test)]
     pub fn empty(mac: String) -> Self {
         NICUpdate{
             mac,
@@ -114,7 +114,7 @@ pub struct JailUpdate {
     owner_uuid: Option<Uuid>,
     package_name: Option<String>,
     package_version: Option<String>,
-    #[serde(default = "jail_config::empty_nics")]
+    #[serde(default = "empty_nics")]
     add_nics: Vec<NIC>,
     #[serde(default = "empty_macs")]
     remove_nics: Vec<String>,
@@ -132,6 +132,7 @@ impl JailUpdate {
         let update: JailUpdate = serde_json::from_reader(reader)?;
         return Ok(update);
     }
+    #[cfg(test)]
     pub fn empty() -> Self {
         JailUpdate {
             alias: None,
@@ -209,6 +210,11 @@ fn empty_macs() -> Vec<String> {
 }
 
 fn empty_nic_update() -> Vec<NICUpdate> {
+    Vec::new()
+}
+
+
+fn empty_nics() -> Vec<NIC> {
     Vec::new()
 }
 
@@ -505,3 +511,4 @@ mod tests {
     }
 
 }
+

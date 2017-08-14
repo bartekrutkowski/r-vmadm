@@ -23,18 +23,27 @@ use rand::{thread_rng, Rng};
 pub struct NIC {
     /// Interface name
     pub interface: String,
+    /// Mac address for the nic
     #[serde(default = "new_mac")]
     pub mac: String,
+    /// VLAN id for the nic
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vlan: Option<u16>,
+    /// The nic_tag for the nic to uise
     pub nic_tag: String,
+    /// The IP for the nic
     pub ip: String,
+    /// The netmask for the nic
     pub netmask: String,
+    /// The gateway for the nic
     pub gateway: String,
     #[serde(default = "dflt_false")]
+    /// If this nic is the primary interface or not
     pub primary: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// The MTU for the nic
     pub mtu: Option<u32>,
+    /// Network UUID for the nic
     #[serde(skip_serializing_if = "Option::is_none")]
     pub network_uuid: Option<Uuid>,
 }
@@ -447,7 +456,7 @@ fn new_uuid() -> Uuid {
     Uuid::new_v4()
 }
 
-pub fn empty_nics() -> Vec<NIC> {
+fn empty_nics() -> Vec<NIC> {
     Vec::new()
 }
 
