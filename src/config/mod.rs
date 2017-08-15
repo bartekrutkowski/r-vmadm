@@ -14,6 +14,9 @@ static CONFIG: &'static str = "/etc/vmadm.toml";
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Settings {
     pub pool: String,
+
+    #[serde(default = "default_repo")]
+    pub repo: String,
     #[serde(default = "default_conf_dir")]
     pub conf_dir: String,
     #[serde(default = "devfs_ruleset")]
@@ -33,6 +36,10 @@ pub struct Config {
 
 fn default_conf_dir() -> String {
     "/etc/jails".to_string()
+}
+
+fn default_repo() -> String {
+    "https://datasets.project-fifo.net/images".to_string()
 }
 
 impl Config {

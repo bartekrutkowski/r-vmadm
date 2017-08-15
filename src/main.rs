@@ -1,3 +1,4 @@
+
 //! vmadm compatible jail manager
 
 #![deny(trivial_numeric_casts,
@@ -22,6 +23,9 @@ extern crate toml;
 extern crate lazy_static;
 extern crate regex;
 extern crate rand;
+extern crate reqwest;
+extern crate chrono;
+
 
 //extern crate indicatif;
 
@@ -51,22 +55,22 @@ use aud::{Failure, Adventure, Saga};
 use std::process::Command;
 
 mod zfs;
-
-pub mod jails;
+mod images;
+mod jails;
 use jails::Jail;
 
-pub mod jail_config;
+mod jail_config;
 mod update;
 
 use jail_config::JailConfig;
 
-pub mod jdb;
+mod jdb;
 use jdb::{JDB, IdxEntry};
 
 mod config;
 use config::Config;
 
-pub mod errors;
+mod errors;
 use errors::GenericError;
 
 #[cfg(target_os = "freebsd")]
@@ -180,6 +184,7 @@ fn run() -> i32 {
             ("get", Some(get_matches)) => get(&config, get_matches),
             ("info", Some(info_matches)) => info(&config, info_matches),
             ("console", Some(console_matches)) => console(&config, console_matches),
+            ("images", Some(image_matches)) => images(&config, image_matches),
             ("", None) => {
                 help_app.print_help().unwrap();
                 println!();
@@ -514,4 +519,18 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
     };
     db.remove(&uuid)?;
     res
+}
+
+fn images(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+        match matches.subcommand() {
+            ("avail", Some(avail_matches)) => images_avail(&conf, avail_matches),
+            ("", None) => {
+                Ok(0)
+            }
+            _ => unreachable!(),
+        }
+}
+
+fn images_avail(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    images::avail(conf)
 }

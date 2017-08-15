@@ -97,3 +97,8 @@ subcommands:
                 help: Forces the stop
                 short: F
                 takes_value: false
+    - images:
+        about: image subcommands
+        subcommands:
+          - avail:
+              about: lists available images
