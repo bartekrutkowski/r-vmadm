@@ -13,6 +13,12 @@ Images are ZFS datasets that get cloned for a new jail, both living under a give
 ## Prerequirements
 
 
+### libraries
+
+```bash
+
+pkg install pkgconf openssl
+```
 
 ### bridge interface
 We need to add bridge0 interface to the `/etc/rc.conf` (`em0` might differ for you)
