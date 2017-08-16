@@ -102,3 +102,17 @@ subcommands:
         subcommands:
           - avail:
               about: lists available images
+          - get:
+              about: lists available images
+              args:
+                - uuid:
+                    help: UUID if the image to get
+                    index: 1
+                    required: true
+          - import:
+              about: lists available images
+              args:
+                - uuid:
+                    help: UUID if the image to get
+                    index: 1
+                    required: true

@@ -524,6 +524,8 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 fn images(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
         match matches.subcommand() {
             ("avail", Some(avail_matches)) => images_avail(&conf, avail_matches),
+            ("get", Some(get_matches)) => images_get(&conf, get_matches),
+            ("import", Some(import_matches)) => images_import(&conf, import_matches),
             ("", None) => {
                 Ok(0)
             }
@@ -533,4 +535,16 @@ fn images(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 
 fn images_avail(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     images::avail(conf)
+}
+
+fn images_get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    images::get(conf, uuid)
+}
+
+fn images_import(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    images::import(conf, uuid)
 }

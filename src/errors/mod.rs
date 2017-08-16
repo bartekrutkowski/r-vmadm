@@ -15,11 +15,12 @@ impl ValidationErrors {
     pub fn new(errors: Vec<ValidationError>) -> Self {
         ValidationErrors { errors }
     }
-    /// Create a new error in a box
-    pub fn bx(errors: Vec<ValidationError>) -> Box<Error> {
-        Box::new(ValidationErrors::new(errors))
-    }
+   /// Create a new error in a box
+   pub fn bx(errors: Vec<ValidationError>) -> Box<Error> {
+       Box::new(ValidationErrors::new(errors))
+   }
 }
+
 impl fmt::Display for ValidationErrors {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut r = write!(f, "{} validaiton errors encountered", self.errors.len());
@@ -51,10 +52,10 @@ impl ValidationError {
             error: String::from(error),
         }
     }
-    /// Create a new error in a box
-    pub fn bx(field: &str, error: &str) -> Box<Error> {
-        Box::new(ValidationError::new(field, error))
-    }
+    // /// Create a new error in a box
+    // pub fn bx(field: &str, error: &str) -> Box<Error> {
+    //     Box::new(ValidationError::new(field, error))
+    // }
 }
 
 impl fmt::Display for ValidationError {
