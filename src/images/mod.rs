@@ -1,11 +1,14 @@
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::error::Error;
 use std::fs::File;
 use std::io::copy;
 
 use config::Config;
+use errors::GenericError;
+use zfs;
 
 use reqwest;
+use tempfile;
 use serde_json;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
@@ -13,7 +16,8 @@ use prettytable::Table;
 use prettytable::format;
 use prettytable::row::Row;
 use prettytable::cell::Cell;
-
+use bzip2::read::BzDecoder;
+use flate2::read::GzDecoder;
 
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -131,7 +135,7 @@ pub fn get(config: &Config, uuid: Uuid) -> Result<i32, Box<Error>> {
     Ok(0)
 }
 
-pub fn import(config: &Config, uuid: Uuid) -> Result<i32, Box<Error>> {
+pub fn show(config: &Config, uuid: Uuid) -> Result<i32, Box<Error>> {
     let mut url = config.settings.repo.clone();
     let uuid_str = uuid.hyphenated().to_string();
     url.push('/');
@@ -140,15 +144,71 @@ pub fn import(config: &Config, uuid: Uuid) -> Result<i32, Box<Error>> {
            "uuid" => uuid_str.clone(), "url" => url.clone());
     let resp = reqwest::get(url.as_str())?;
     let image = Image::from_reader(resp)?;
-    let file_info = image.files[0].clone();
-    let mut file = uuid_str.clone();
-    file.push_str(".");
-    file.push_str(file_info.compression.as_str());
-    url.push_str("/file");
-
-    let mut out = File::create(file)?;
-    let mut resp = reqwest::get(url.as_str())?;
-    copy(&mut resp, &mut out)?;
+    let j = serde_json::to_string_pretty(&image)?;
+    println!("{}\n", j);
     //print_images(images, false, false);
+    Ok(0)
+}
+
+
+pub fn import(config: &Config, uuid: Uuid) -> Result<i32, Box<Error>> {
+
+    let mut url = config.settings.repo.clone();
+    let uuid_str = uuid.hyphenated().to_string();
+    let mut dataset = config.settings.pool.clone();
+    dataset.push('/');
+    dataset.push_str(uuid_str.as_str());
+    url.push('/');
+    url.push_str(uuid_str.as_str());
+
+    if zfs::is_present(dataset.as_str()) {
+            return Err(GenericError::bx("Dataset already present"));
+    };
+
+    debug!("Fethcing image"; "repo" => config.settings.repo.clone(),
+           "uuid" => uuid_str.clone(), "url" => url.clone());
+    let resp = reqwest::get(url.as_str())?;
+    let image = Image::from_reader(resp)?;
+    
+    match image.origin {
+        None => (),
+        Some(origin) => {
+            let mut origin_dataset = config.settings.pool.clone();
+            origin_dataset.push('/');
+            origin_dataset.push_str(origin.hyphenated().to_string().as_str());
+            if ! zfs::is_present(origin_dataset.as_str()) {
+                import(config, origin)?;
+            }
+        }
+    };
+    let file_info = image.files[0].clone();
+    url.push_str("/file");
+    let mut out: File = tempfile::tempfile()?;
+    let mut resp = reqwest::get(url.as_str())?;
+    println!("Downloading {} ...", uuid_str.as_str());
+    copy(&mut resp, &mut out)?;
+    println!("Importing {} ...", uuid_str.as_str());
+    out.seek(SeekFrom::Start(0))?;
+    match file_info.compression.as_str() {
+        "bzip2" => {
+            let mut decompressor = BzDecoder::new(out);
+            zfs::receive(dataset.as_str(), &mut decompressor)?;
+        }
+        "gzip" => {
+            let mut decompressor = GzDecoder::new(out)?;
+            zfs::receive(dataset.as_str(), &mut decompressor)?;
+        }
+        compression => {
+            println!("Encountered {} compression", compression);
+            return Err(GenericError::bx("Only bzip2 compression is supporred for images."));
+        }
+    }
+    let mut cfg_path = config.settings.image_dir.clone();
+    cfg_path.push('/');
+    cfg_path.push_str(uuid_str.as_str());
+    cfg_path.push_str(".json");
+    println!("Writing manifest file: {}", cfg_path);
+    let cfg_file = File::create(cfg_path)?;
+    serde_json::to_writer(cfg_file, &image)?;
     Ok(0)
 }

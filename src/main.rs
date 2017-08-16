@@ -25,7 +25,9 @@ extern crate regex;
 extern crate rand;
 extern crate reqwest;
 extern crate chrono;
-
+extern crate tempfile;
+extern crate bzip2;
+extern crate flate2;
 
 //extern crate indicatif;
 
@@ -289,7 +291,7 @@ fn console(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>>
             let mut child = Command::new(JEXEC)
                 .args(&[jid.id.to_string().as_str(), "/bin/csh"])
                 .spawn()
-                .expect("failed to execute jsj");
+                .expect("failed to execute jexec");
             let ecode = child.wait().expect("failed to wait on child");
             if ecode.success() {
                 Ok(0)
@@ -525,6 +527,7 @@ fn images(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
         match matches.subcommand() {
             ("avail", Some(avail_matches)) => images_avail(&conf, avail_matches),
             ("get", Some(get_matches)) => images_get(&conf, get_matches),
+            ("show", Some(show_matches)) => images_show(&conf, show_matches),
             ("import", Some(import_matches)) => images_import(&conf, import_matches),
             ("", None) => {
                 Ok(0)
@@ -541,6 +544,12 @@ fn images_get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Erro
     let uuid_string = value_t!(matches, "uuid", String).unwrap();
     let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
     images::get(conf, uuid)
+}
+
+fn images_show(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    let uuid_string = value_t!(matches, "uuid", String).unwrap();
+    let uuid = Uuid::parse_str(uuid_string.as_str()).unwrap();
+    images::show(conf, uuid)
 }
 
 fn images_import(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {

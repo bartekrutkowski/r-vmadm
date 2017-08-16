@@ -102,8 +102,15 @@ subcommands:
         subcommands:
           - avail:
               about: lists available images
+          - show:
+              about: show manifest of an available image
+              args:
+                - uuid:
+                    help: UUID if the image to get
+                    index: 1
+                    required: true
           - get:
-              about: lists available images
+              about: info on an installed image
               args:
                 - uuid:
                     help: UUID if the image to get

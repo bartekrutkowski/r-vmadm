@@ -19,6 +19,8 @@ pub struct Settings {
     pub repo: String,
     #[serde(default = "default_conf_dir")]
     pub conf_dir: String,
+    #[serde(default = "default_image_dir")]
+    pub image_dir: String,
     #[serde(default = "devfs_ruleset")]
     pub devfs_ruleset: u32,
     pub networks: Map<String, String>,
@@ -36,6 +38,10 @@ pub struct Config {
 
 fn default_conf_dir() -> String {
     "/etc/jails".to_string()
+}
+
+fn default_image_dir() -> String {
+    "/var/imgadm/images".to_string()
 }
 
 fn default_repo() -> String {
