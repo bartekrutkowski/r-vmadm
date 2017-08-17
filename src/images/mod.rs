@@ -1,6 +1,7 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::error::Error;
-use std::fs::File;
+use std::fs::{self, File};
+
 use std::io::copy;
 
 use config::Config;
@@ -112,6 +113,17 @@ fn print_images(images: Vec<Image>, headerless: bool, parsable: bool) {
     };
 
 }
+pub fn list(config: &Config) -> Result<i32, Box<Error>> {
+    let mut images: Vec<Image> = Vec::new();
+    for entry in fs::read_dir(config.settings.image_dir.clone())? {
+        let entry = entry?;
+        let image_file = File::open(entry.path())?;
+        let image = Image::from_reader(image_file)?;
+        images.push(image);
+    }
+    print_images(images, false, false);
+    Ok(0)
+}
 pub fn avail(config: &Config) -> Result<i32, Box<Error>> {
     debug!("Listing images"; "repo" => config.settings.repo.clone());
     let resp = reqwest::get(config.settings.repo.as_str())?;
@@ -121,14 +133,15 @@ pub fn avail(config: &Config) -> Result<i32, Box<Error>> {
 }
 
 pub fn get(config: &Config, uuid: Uuid) -> Result<i32, Box<Error>> {
-    let mut url = config.settings.repo.clone();
+    let mut file_name = config.settings.image_dir.clone();
     let uuid_str = uuid.hyphenated().to_string();
-    url.push('/');
-    url.push_str(uuid_str.as_str());
-    debug!("Fethcing image"; "repo" => config.settings.repo.clone(),
-           "uuid" => uuid_str.clone(), "url" => url.clone());
-    let resp = reqwest::get(url.as_str())?;
-    let image = Image::from_reader(resp)?;
+    file_name.push('/');
+    file_name.push_str(uuid_str.as_str());
+    file_name.push_str(".json");
+    debug!("Get image"; "dir" => config.settings.image_dir.clone(),
+           "uuid" => uuid_str.clone(), "filer" => file_name.clone());
+    let file = File::open(file_name)?;
+    let image = Image::from_reader(file)?;
     let j = serde_json::to_string_pretty(&image)?;
     println!("{}\n", j);
     //print_images(images, false, false);

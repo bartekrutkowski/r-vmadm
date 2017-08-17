@@ -526,6 +526,7 @@ fn delete(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 fn images(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
         match matches.subcommand() {
             ("avail", Some(avail_matches)) => images_avail(&conf, avail_matches),
+            ("list", Some(list_matches)) => images_list(&conf, list_matches),
             ("get", Some(get_matches)) => images_get(&conf, get_matches),
             ("show", Some(show_matches)) => images_show(&conf, show_matches),
             ("import", Some(import_matches)) => images_import(&conf, import_matches),
@@ -538,6 +539,10 @@ fn images(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> 
 
 fn images_avail(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
     images::avail(conf)
+}
+
+fn images_list(conf: &Config, _matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {
+    images::list(conf)
 }
 
 fn images_get(conf: &Config, matches: &clap::ArgMatches) -> Result<i32, Box<Error>> {

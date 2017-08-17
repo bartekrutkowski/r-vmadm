@@ -102,6 +102,9 @@ subcommands:
         subcommands:
           - avail:
               about: lists available images
+          - list:
+              about: lists installed images
+
           - show:
               about: show manifest of an available image
               args:
