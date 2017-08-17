@@ -6,6 +6,13 @@ declare -a EXECS=("COPYRIGHT" "/libexec/ld-elf.so.1" "bin/sh" "/sbin/ifconfig" "
 
 #### End user editable vars
 
+if [ -z "$1" ]
+then
+    VSN=11.0
+else
+    VSN=$1
+fi
+
 ID=$(uuidgen)
 
 zfs create -p zroot/jails/$ID
