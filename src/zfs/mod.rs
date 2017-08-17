@@ -3,7 +3,7 @@
 
 use std::error::Error;
 use std::process::{Command, Stdio};
-use errors::{GenericError, NotFoundError};
+use errors::GenericError;
 use std::io::Read;
 use std::io::copy;
 

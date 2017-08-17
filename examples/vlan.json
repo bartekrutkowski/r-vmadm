@@ -1,6 +1,6 @@
 {
     "cpu_cap": 100,
-    "image_uuid": "1bfac552-6a28-11e7-9a80-002590a63bc7",
+    "image_uuid": "616d4ab2-832c-11e7-9392-784f438c8d54",
     "hostname": "test",
     "max_physical_memory": 1024,
     "quota": 100,

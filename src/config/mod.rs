@@ -1,5 +1,3 @@
-
-
 use std::io::Read;
 use std::error::Error;
 use std::fs::File;
@@ -46,7 +44,7 @@ fn default_image_dir() -> String {
 }
 
 fn default_repo() -> String {
-    "https://datasets.project-fifo.net/images".to_string()
+    "https://bsd.project-fifo.net/images".to_string()
 }
 
 impl Config {
