@@ -2,6 +2,8 @@
 
 The goal of this is to provide a fast, efficient utility to manage BSD jails. The CLI is designed to mirror SmartOS's vmadm, and we borrow ideas from other Solaris zone utilities where applicable.
 
+[![asciicast](https://asciinema.org/a/M8sjN0FC64JPBWZqjKIG5sx2q.png)](https://asciinema.org/a/M8sjN0FC64JPBWZqjKIG5sx2q)
+
 ## Design
 
 vmadm describes jails as JSON files. These files are compatible with vmadm's files but represent only a subset of the total options.
