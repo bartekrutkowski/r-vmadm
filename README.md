@@ -58,16 +58,16 @@ Some of the steps above require a reboot, there is however no reason not just do
 
 ## installation
 
-1. Install rust (https://rustup.rs/)
-2. Clone this repository
-3. Build the binary `cargo build --release`
-4. Copy the executable `cp target/release/vmadm /usr/local/sbin`
+1. Install rust (https://rustup.rs/) and cargo: `pkg install rust cargo`
+2. Clone this repository using Git or download it as a Zip archive
+3. Build the vmadm binary: `cargo build --release`
+4. Copy the executable: `cp target/release/vmadm /usr/local/sbin`
 5. Create the jails folder: `mkdir /etc/jails`
-6. Create the images folder `mkdir -p /var/imgadm/images`
+6. Create the images folder: `mkdir -p /var/imgadm/images`
 7. Create the main config file: `echo 'pool = "zroot/jails"\n[networks]\nadmin = "bridge0"' > /etc/vmadm.toml`
-8. Download a/the datase `curl -O https://s3.amazonaws.com/datasets.project-fifo.net/freebsd/e022d0f8-5630-11e7-b660-9b2d243d4404.xz`
+8. Download the dataset: `curl -O https://s3.amazonaws.com/datasets.project-fifo.net/freebsd/e022d0f8-5630-11e7-b660-9b2d243d4404.xz`
 9. Extract the dataset `xzcat e022d0f8-5630-11e7-b660-9b2d243d4404.xz | zfs receive zroot/jails/e022d0f8-5630-11e7-b660-9b2d243d4404`
-10. Create a jail: cat example.json | vmadm create
+10. Create a jail: `cat example.json | vmadm create`
 
 
 The devfs ruleset to used can be adjusted in the `/etc/vmadm.toml` by adding `devfs_ruleset = <rule number>`.
