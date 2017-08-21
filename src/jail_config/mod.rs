@@ -17,7 +17,6 @@ use regex::Regex;
 use rand::{thread_rng, Rng};
 
 
-
 /// Jail configuration values
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NIC {
@@ -468,7 +467,7 @@ fn new_mac() -> String {
     let mut rng = thread_rng();
     // the second half of the first ocet should be 02
     // to indicate this is a locally administered mac
-    // address and not one assiged by a vendor
+    // address and not one assiged by a vendor.
     format!(
         "02:{:x}:{:x}:{:x}:{:x}:{:x}",
         rng.gen::<u8>(),
