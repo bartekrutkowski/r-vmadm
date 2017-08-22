@@ -7,7 +7,7 @@ use std::collections::BTreeMap as Map;
 use toml;
 extern crate slog;
 
-static CONFIG: &'static str = "/etc/vmadm.toml";
+static CONFIG: &'static str = "/usr/local/etc/vmadm.toml";
 
 /// Global settings
 #[derive(Debug, Deserialize, Serialize)]
@@ -36,7 +36,7 @@ pub struct Config {
 }
 
 fn default_conf_dir() -> String {
-    "/etc/jails".to_string()
+    "/usr/local/etc/vmadm".to_string()
 }
 
 fn default_image_dir() -> String {

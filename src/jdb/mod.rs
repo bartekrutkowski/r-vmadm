@@ -66,9 +66,9 @@ impl<'a> JDB<'a> {
     /// # Example
     ///
     /// ```
-    /// // Open jail config folder in /etc/jails
+    /// // Open jail config folder in /usr/local/etc/vmadm
     /// use jdb::JDB;
-    /// let db = JDB::open("/etc/jails/index");
+    /// let db = JDB::open("/usr/local/etc/vmadm/index");
     /// ```
 
     pub fn open(config: &'a Config) -> Result<Self, Box<Error>> {
